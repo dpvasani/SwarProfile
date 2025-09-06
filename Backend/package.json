@@ -26,10 +26,14 @@
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
+    "mammoth": "^1.10.0",
     "mongodb": "^6.19.0",
     "mongoose": "^8.18.0",
     "mongoose-aggregate-paginate-v2": "^1.1.4",
     "multer": "^2.0.2",
-    "prettier": "^3.6.2"
+    "pdf-parse": "^1.1.1",
+    "prettier": "^3.6.2",
+    "sharp": "^0.34.3",
+    "tesseract.js": "^6.0.1"
   }
 }

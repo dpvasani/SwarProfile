@@ -28,9 +28,11 @@ app.listen(process.env.PORT || 4000, () => {
 // Routes Import
 //routes import
 import userRouter from "./routes/user.routes.js";
+import artistRouter from "./routes/artist.routes.js";
 
 //routes declaration
 
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/artists", artistRouter);
 
 export default app;
