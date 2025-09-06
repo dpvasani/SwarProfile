@@ -96,7 +96,7 @@ class DocumentExtractor {
   }
 
   /**
-   * Extract text from images using OCR
+   * Extract text from images using OCR with Google Vision AI fallback
    */
   async extractFromImage(filePath) {
     // Try Google Vision API first if available
@@ -149,6 +149,7 @@ class DocumentExtractor {
       throw new ApiError(500, `Google Vision API extraction failed: ${error.message}`);
     }
   }
+
   /**
    * Parse extracted text to identify artist information
    */
@@ -182,6 +183,7 @@ class DocumentExtractor {
     if (wordCount > 20) return 'medium';
     return 'low';
   }
+
   /**
    * Extract artist name using patterns
    */
