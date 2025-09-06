@@ -4,10 +4,29 @@ import mammoth from 'mammoth';
 import fs from 'fs';
 import path from 'path';
 import { ApiError } from './ApiError.js';
+import vision from '@google-cloud/vision';
 
 class DocumentExtractor {
   constructor() {
     this.supportedFormats = ['pdf', 'doc', 'docx', 'jpeg', 'jpg', 'png'];
+    
+    // Initialize Google Vision client if credentials are available
+    this.visionClient = null;
+    if (process.env.GOOGLE_CLOUD_PROJECT_ID && process.env.GOOGLE_CLOUD_PRIVATE_KEY) {
+      try {
+        this.visionClient = new vision.ImageAnnotatorClient({
+          projectId: process.env.GOOGLE_CLOUD_PROJECT_ID,
+          keyFilename: process.env.GOOGLE_CLOUD_KEY_FILE, // Optional: if using key file
+          credentials: process.env.GOOGLE_CLOUD_PRIVATE_KEY ? {
+            client_email: process.env.GOOGLE_CLOUD_CLIENT_EMAIL,
+            private_key: process.env.GOOGLE_CLOUD_PRIVATE_KEY.replace(/\\n/g, '\n'),
+          } : undefined
+        });
+        console.log('Google Vision API initialized successfully');
+      } catch (error) {
+        console.warn('Google Vision API initialization failed, falling back to Tesseract:', error.message);
+      }
+    }
   }
 
   /**
@@ -80,16 +99,56 @@ class DocumentExtractor {
    * Extract text from images using OCR
    */
   async extractFromImage(filePath) {
+    // Try Google Vision API first if available
+    if (this.visionClient) {
+      try {
+        console.log('Attempting OCR with Google Vision API...');
+        const text = await this.extractWithGoogleVision(filePath);
+        if (text && text.trim().length > 0) {
+          console.log('Google Vision API extraction successful');
+          return text;
+        }
+      } catch (error) {
+        console.warn('Google Vision API failed, falling back to Tesseract:', error.message);
+      }
+    }
+
+    // Fallback to Tesseract.js
     try {
+      console.log('Using Tesseract.js for OCR...');
       const { data: { text } } = await Tesseract.recognize(filePath, 'eng', {
-        logger: m => console.log(m) // Optional: log OCR progress
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log(`Tesseract progress: ${Math.round(m.progress * 100)}%`);
+          }
+        }
       });
+      console.log('Tesseract.js extraction completed');
       return text;
     } catch (error) {
       throw new ApiError(500, `OCR extraction failed: ${error.message}`);
     }
   }
 
+  /**
+   * Extract text using Google Vision API
+   */
+  async extractWithGoogleVision(filePath) {
+    try {
+      const [result] = await this.visionClient.textDetection(filePath);
+      const detections = result.textAnnotations;
+      
+      if (detections && detections.length > 0) {
+        // First annotation contains the full text
+        return detections[0].description || '';
+      }
+      
+      return '';
+    } catch (error) {
+      console.error('Google Vision API error:', error);
+      throw new ApiError(500, `Google Vision API extraction failed: ${error.message}`);
+    }
+  }
   /**
    * Parse extracted text to identify artist information
    */
@@ -103,11 +162,26 @@ class DocumentExtractor {
       contactDetails: this.extractContactDetails(cleanText),
       biography: this.extractBiography(cleanText),
       rawText: cleanText,
+      extractionMethod: this.visionClient ? 'Google Vision API + Tesseract fallback' : 'Tesseract.js only',
+      confidence: this.calculateConfidence(cleanText),
     };
 
     return extractedData;
   }
 
+  /**
+   * Calculate extraction confidence based on text quality
+   */
+  calculateConfidence(text) {
+    if (!text || text.length < 10) return 'low';
+    
+    const wordCount = text.split(/\s+/).length;
+    const hasStructuredData = /(?:name|guru|gharana|phone|email)/i.test(text);
+    
+    if (wordCount > 50 && hasStructuredData) return 'high';
+    if (wordCount > 20) return 'medium';
+    return 'low';
+  }
   /**
    * Extract artist name using patterns
    */
