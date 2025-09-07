@@ -87,6 +87,9 @@ class DocumentExtractor {
    */
   async extractFromPDF(filePath) {
     try {
+      if (!fs.existsSync(filePath)) {
+        throw new ApiError(404, `PDF file not found: ${filePath}`);
+      }
       const dataBuffer = fs.readFileSync(filePath);
       const data = await pdfParse(dataBuffer);
       return data.text;
