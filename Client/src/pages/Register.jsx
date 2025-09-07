@@ -77,7 +77,7 @@ const Register = () => {
     }
 
     const result = await register(formData);
-    
+    console.log(result); // Debug registration response
     if (result.success) {
       navigate('/login', { 
         state: { message: 'Registration successful! Please log in.' }
@@ -85,7 +85,6 @@ const Register = () => {
     } else {
       setError(result.error);
     }
-    
     setLoading(false);
   };
 
