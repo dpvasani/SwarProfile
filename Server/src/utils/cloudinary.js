@@ -12,7 +12,7 @@ cloudinary.config({
 });
 
 // Function to upload file to Cloudinary
-const uploadOnCloudinary = async (localFilePath) => {
+const uploadOnCloudinary = async (localFilePath, deleteAfterUpload = true) => {
   try {
     console.log("Attempting to upload file:", localFilePath);
     
@@ -32,15 +32,19 @@ const uploadOnCloudinary = async (localFilePath) => {
 
     console.log("Upload successful:", response.secure_url);
     
-    // Successfully uploaded, remove the file
-    fs.unlinkSync(localFilePath);
+    // Successfully uploaded, remove the file only if requested
+    if (deleteAfterUpload) {
+      fs.unlinkSync(localFilePath);
+      console.log("Temporary file deleted:", localFilePath);
+    }
     return response;
   } catch (error) {
     console.error("Error uploading to Cloudinary:", error);
     try {
-      // Ensure file deletion even if upload fails
-      if (fs.existsSync(localFilePath)) {
+      // Ensure file deletion even if upload fails, only if requested
+      if (deleteAfterUpload && fs.existsSync(localFilePath)) {
         fs.unlinkSync(localFilePath);
+        console.log("Temporary file deleted after error:", localFilePath);
       }
     } catch (unlinkError) {
       console.error("Error removing temporary file:", unlinkError);

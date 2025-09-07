@@ -108,8 +108,25 @@ const registerUser = asyncHandler(async (req, res) => {
   console.log("Files exist, proceeding with Cloudinary upload...");
   
   // Cloudinary Uploading
-  const avatar = await uploadOnCloudinary(avatarLocalPath);
-  const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  // Upload avatar first without deleting the file yet
+  const avatar = await uploadOnCloudinary(avatarLocalPath, false);
+  
+  // Upload cover image (if exists) without deleting the file yet
+  const coverImage = coverImageLocalPath ? await uploadOnCloudinary(coverImageLocalPath, false) : null;
+  
+  // Clean up temporary files after both uploads are complete
+  try {
+    if (fs.existsSync(avatarLocalPath)) {
+      fs.unlinkSync(avatarLocalPath);
+      console.log("Avatar temp file cleaned up:", avatarLocalPath);
+    }
+    if (coverImageLocalPath && fs.existsSync(coverImageLocalPath)) {
+      fs.unlinkSync(coverImageLocalPath);
+      console.log("Cover image temp file cleaned up:", coverImageLocalPath);
+    }
+  } catch (cleanupError) {
+    console.error("Error cleaning up temporary files:", cleanupError);
+  }
   
   if (!avatar) {
     throw new ApiError(400, "Avatar File Is Required");
