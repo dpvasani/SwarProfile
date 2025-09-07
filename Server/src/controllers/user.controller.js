@@ -1,3 +1,4 @@
+import fs from "fs";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
@@ -83,6 +84,13 @@ const registerUser = asyncHandler(async (req, res) => {
   }
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar File Is Required");
+  }
+  // Check if avatar file exists
+  if (!fs.existsSync(avatarLocalPath)) {
+    throw new ApiError(400, `Avatar file not found at path: ${avatarLocalPath}`);
+  }
+  if (coverImageLocalPath && !fs.existsSync(coverImageLocalPath)) {
+    throw new ApiError(400, `Cover image file not found at path: ${coverImageLocalPath}`);
   }
   // Cloudinary Uploading
   const avatar = await uploadOnCloudinary(avatarLocalPath);
