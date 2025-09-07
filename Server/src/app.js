@@ -21,6 +21,29 @@ app.use(express.static("public"));
 
 app.use(cookieParser());
 
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error('Global error handler:', err);
+  
+  // If it's an ApiError, send the structured response
+  if (err.statusCode) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      errors: err.errors || [],
+      data: null
+    });
+  }
+  
+  // For other errors, send a generic response
+  return res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+    errors: [],
+    data: null
+  });
+});
+
 app.listen(process.env.PORT || 4000, () => {
   console.log(`⚙️  Server is running on port ${process.env.PORT || 4000}`);
 });

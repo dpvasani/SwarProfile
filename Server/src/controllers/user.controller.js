@@ -67,7 +67,7 @@ const registerUser = asyncHandler(async (req, res) => {
     $or: [{ email }, { username }],
   });
   if (existedUser) {
-    throw new ApiError(409, "User With Username Or Email Is Exists");
+    throw new ApiError(409, "User with this username or email already exists");
   }
   // Multer Getting File Local Path
   // console.log(req.files)
@@ -147,10 +147,13 @@ const registerUser = asyncHandler(async (req, res) => {
   if (!createdUser) {
     throw new ApiError(500, "User Not Created");
   }
+  
+  console.log('User created successfully:', createdUser._id);
+  
   // Response
   return res.status(201).json(
     new ApiResponse(
-      200,
+      201,
       {
         user: createdUser,
       },
