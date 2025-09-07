@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
@@ -71,6 +72,8 @@ const registerUser = asyncHandler(async (req, res) => {
   // Multer Getting File Local Path
   // console.log(req.files)
   const avatarLocalPath = req.files?.avatar[0]?.path;
+  console.log("Avatar local path:", avatarLocalPath);
+  
   let coverImageLocalPath;
   if (
     req.files &&
@@ -81,20 +84,33 @@ const registerUser = asyncHandler(async (req, res) => {
     // coverImageLocalPath = req.files?.coverImage?.[0]?.path;
     // Mandate Check
     coverImageLocalPath = req.files.coverImage[0].path;
+    console.log("Cover image local path:", coverImageLocalPath);
   }
+  
   if (!avatarLocalPath) {
     throw new ApiError(400, "Avatar File Is Required");
   }
+  
   // Check if avatar file exists
+  console.log("Checking if avatar file exists at:", avatarLocalPath);
+  console.log("Current working directory:", process.cwd());
+  console.log("Resolved avatar path:", path.resolve(avatarLocalPath));
+  
   if (!fs.existsSync(avatarLocalPath)) {
     throw new ApiError(400, `Avatar file not found at path: ${avatarLocalPath}`);
   }
   if (coverImageLocalPath && !fs.existsSync(coverImageLocalPath)) {
+    console.log("Checking cover image path:", coverImageLocalPath);
+    console.log("Resolved cover image path:", path.resolve(coverImageLocalPath));
     throw new ApiError(400, `Cover image file not found at path: ${coverImageLocalPath}`);
   }
+  
+  console.log("Files exist, proceeding with Cloudinary upload...");
+  
   // Cloudinary Uploading
   const avatar = await uploadOnCloudinary(avatarLocalPath);
   const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+  
   if (!avatar) {
     throw new ApiError(400, "Avatar File Is Required");
   }

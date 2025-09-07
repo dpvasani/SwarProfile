@@ -14,16 +14,24 @@ cloudinary.config({
 // Function to upload file to Cloudinary
 const uploadOnCloudinary = async (localFilePath) => {
   try {
+    console.log("Attempting to upload file:", localFilePath);
+    
     if (!localFilePath || !fs.existsSync(localFilePath)) {
-      console.error("File path is invalid or file does not exist");
+      console.error("File path is invalid or file does not exist:", localFilePath);
+      console.error("Current working directory:", process.cwd());
+      console.error("Resolved path:", path.resolve(localFilePath));
       return null;
     }
 
+    console.log("File exists, proceeding with upload...");
+    
     // Upload the file to Cloudinary
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
 
+    console.log("Upload successful:", response.secure_url);
+    
     // Successfully uploaded, remove the file
     fs.unlinkSync(localFilePath);
     return response;
@@ -35,7 +43,6 @@ const uploadOnCloudinary = async (localFilePath) => {
         fs.unlinkSync(localFilePath);
       }
     } catch (unlinkError) {
-      fs.unlinkSync(localFilePath);
       console.error("Error removing temporary file:", unlinkError);
     }
 
