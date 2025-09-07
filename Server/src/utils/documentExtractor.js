@@ -5,6 +5,7 @@ import fs from 'fs';
 import path from 'path';
 import { ApiError } from './ApiError.js';
 import vision from '@google-cloud/vision';
+import sharp from 'sharp';
 
 class DocumentExtractor {
   constructor() {
@@ -24,15 +25,16 @@ class DocumentExtractor {
         });
         console.log('🚀 Google Vision API initialized successfully');
       } catch (error) {
-        console.warn('⚠️ Google Vision API initialization failed, falling back to Tesseract:', error.message);
+        console.warn('⚠️ Google Vision API initialization failed, will use as fallback only:', error.message);
+        this.visionClient = null;
       }
     } else {
-      console.log('📝 Using Tesseract.js only (Google Vision API credentials not provided)');
+      console.log('📝 Google Vision API credentials not provided - using local extraction only');
     }
   }
 
   /**
-   * Main extraction method that routes to appropriate extractor
+   * Main extraction method with comprehensive fallback logic
    */
   async extractFromFile(filePath, fileType) {
     const startTime = Date.now();
@@ -50,32 +52,47 @@ class DocumentExtractor {
 
       let extractedText = '';
       let processingMethod = '';
+      let confidence = 'low';
+      let fallbackUsed = false;
+
+      console.log(`🔄 Starting extraction for ${normalizedType} file: ${filePath}`);
 
       switch (normalizedType) {
         case 'pdf':
-          extractedText = await this.extractFromPDF(filePath);
-          processingMethod = 'PDF Parser';
+          const pdfResult = await this.extractFromPDFWithFallback(filePath);
+          extractedText = pdfResult.text;
+          processingMethod = pdfResult.method;
+          confidence = pdfResult.confidence;
+          fallbackUsed = pdfResult.fallbackUsed;
           break;
+          
         case 'doc':
         case 'docx':
-          extractedText = await this.extractFromWord(filePath);
-          processingMethod = 'Mammoth (Word)';
+          const wordResult = await this.extractFromWordWithFallback(filePath);
+          extractedText = wordResult.text;
+          processingMethod = wordResult.method;
+          confidence = wordResult.confidence;
+          fallbackUsed = wordResult.fallbackUsed;
           break;
+          
         case 'jpeg':
         case 'jpg':
         case 'png':
-          const ocrResult = await this.extractFromImage(filePath);
-          extractedText = ocrResult.text;
-          processingMethod = ocrResult.method;
+          const imageResult = await this.extractFromImageWithFallback(filePath);
+          extractedText = imageResult.text;
+          processingMethod = imageResult.method;
+          confidence = imageResult.confidence;
+          fallbackUsed = imageResult.fallbackUsed;
           break;
+          
         default:
           throw new ApiError(400, `Extraction not implemented for ${fileType}`);
       }
 
       const processingTime = Date.now() - startTime;
-      console.log(`✅ Document processed in ${processingTime}ms using ${processingMethod}`);
+      console.log(`✅ Document processed in ${processingTime}ms using ${processingMethod}${fallbackUsed ? ' (with fallback)' : ''}`);
 
-      return this.parseExtractedData(extractedText, processingMethod, processingTime);
+      return this.parseExtractedData(extractedText, processingMethod, processingTime, confidence, fallbackUsed);
     } catch (error) {
       console.error('❌ Document extraction error:', error);
       throw new ApiError(500, `Failed to extract data from document: ${error.message}`);
@@ -83,74 +100,213 @@ class DocumentExtractor {
   }
 
   /**
-   * Extract text from PDF files
+   * Extract from PDF with fallback to Google Vision API
    */
-  async extractFromPDF(filePath) {
+  async extractFromPDFWithFallback(filePath) {
+    let primaryResult = null;
+    let fallbackUsed = false;
+
+    // Primary method: PDF Parser
     try {
-      if (!fs.existsSync(filePath)) {
-        throw new ApiError(404, `PDF file not found: ${filePath}`);
-      }
+      console.log('📄 Attempting PDF extraction with pdf-parse...');
       const dataBuffer = fs.readFileSync(filePath);
       const data = await pdfParse(dataBuffer);
-      return data.text;
+      
+      if (data.text && data.text.trim().length > 50) {
+        console.log('✅ PDF extraction successful with pdf-parse');
+        return {
+          text: data.text,
+          method: 'PDF Parser',
+          confidence: this.calculateTextConfidence(data.text),
+          fallbackUsed: false
+        };
+      } else {
+        console.log('⚠️ PDF extraction returned minimal text, trying fallback...');
+        primaryResult = { text: data.text, method: 'PDF Parser (minimal)' };
+      }
     } catch (error) {
-      throw new ApiError(500, `PDF extraction failed: ${error.message}`);
+      console.warn('⚠️ PDF extraction failed:', error.message);
+      primaryResult = { text: '', method: 'PDF Parser (failed)' };
     }
-  }
 
-  /**
-   * Extract text from Word documents
-   */
-  async extractFromWord(filePath) {
+    // Fallback method: Convert PDF to image and use OCR
     try {
-      const result = await mammoth.extractRawText({ path: filePath });
-      return result.value;
+      console.log('🔄 Attempting PDF fallback with image conversion + OCR...');
+      const fallbackResult = await this.extractPDFViaImageConversion(filePath);
+      
+      if (fallbackResult.text && fallbackResult.text.trim().length > (primaryResult?.text?.length || 0)) {
+        console.log('✅ PDF fallback extraction successful');
+        return {
+          text: fallbackResult.text,
+          method: `${fallbackResult.method} (PDF Fallback)`,
+          confidence: fallbackResult.confidence,
+          fallbackUsed: true
+        };
+      }
     } catch (error) {
-      throw new ApiError(500, `Word document extraction failed: ${error.message}`);
+      console.warn('⚠️ PDF fallback extraction failed:', error.message);
     }
+
+    // Return primary result if available, otherwise throw error
+    if (primaryResult && primaryResult.text) {
+      return {
+        text: primaryResult.text,
+        method: primaryResult.method,
+        confidence: 'low',
+        fallbackUsed: false
+      };
+    }
+
+    throw new ApiError(500, 'PDF extraction failed with all methods');
   }
 
   /**
-   * Extract text from images using OCR with Google Vision AI fallback
+   * Extract from Word documents with fallback to Google Vision API
    */
-  async extractFromImage(filePath) {
-    // Try Google Vision API first if available
+  async extractFromWordWithFallback(filePath) {
+    let primaryResult = null;
+    let fallbackUsed = false;
+
+    // Primary method: Mammoth
+    try {
+      console.log('📝 Attempting Word extraction with mammoth...');
+      const result = await mammoth.extractRawText({ path: filePath });
+      
+      if (result.value && result.value.trim().length > 50) {
+        console.log('✅ Word extraction successful with mammoth');
+        return {
+          text: result.value,
+          method: 'Mammoth (Word)',
+          confidence: this.calculateTextConfidence(result.value),
+          fallbackUsed: false
+        };
+      } else {
+        console.log('⚠️ Word extraction returned minimal text, trying fallback...');
+        primaryResult = { text: result.value, method: 'Mammoth (minimal)' };
+      }
+    } catch (error) {
+      console.warn('⚠️ Word extraction failed:', error.message);
+      primaryResult = { text: '', method: 'Mammoth (failed)' };
+    }
+
+    // Fallback method: Convert to image and use OCR (if possible)
+    try {
+      console.log('🔄 Attempting Word fallback with image conversion + OCR...');
+      // Note: Converting Word to image is complex, so we'll use Google Vision API if available
+      if (this.visionClient) {
+        console.log('📸 Converting Word document to image for OCR...');
+        const imageResult = await this.convertWordToImageAndExtract(filePath);
+        
+        if (imageResult.text && imageResult.text.trim().length > (primaryResult?.text?.length || 0)) {
+          console.log('✅ Word fallback extraction successful');
+          return {
+            text: imageResult.text,
+            method: `${imageResult.method} (Word Fallback)`,
+            confidence: imageResult.confidence,
+            fallbackUsed: true
+          };
+        }
+      }
+    } catch (error) {
+      console.warn('⚠️ Word fallback extraction failed:', error.message);
+    }
+
+    // Return primary result if available, otherwise throw error
+    if (primaryResult && primaryResult.text) {
+      return {
+        text: primaryResult.text,
+        method: primaryResult.method,
+        confidence: 'low',
+        fallbackUsed: false
+      };
+    }
+
+    throw new ApiError(500, 'Word document extraction failed with all methods');
+  }
+
+  /**
+   * Extract from images with comprehensive fallback logic
+   */
+  async extractFromImageWithFallback(filePath) {
+    const methods = [];
+    
+    // Method 1: Google Vision API (if available)
     if (this.visionClient) {
       try {
         console.log('🔍 Attempting OCR with Google Vision API...');
-        const text = await this.extractWithGoogleVision(filePath);
-        if (text && text.trim().length > 0) {
+        const visionResult = await this.extractWithGoogleVision(filePath);
+        if (visionResult && visionResult.trim().length > 0) {
           console.log('✨ Google Vision API extraction successful');
           return {
-            text: text,
+            text: visionResult,
             method: 'Google Vision AI',
-            confidence: 'high'
+            confidence: 'high',
+            fallbackUsed: false
           };
         }
+        methods.push({ method: 'Google Vision AI', text: visionResult || '', error: 'No text detected' });
       } catch (error) {
-        console.warn('⚠️ Google Vision API failed, falling back to Tesseract:', error.message);
+        console.warn('⚠️ Google Vision API failed:', error.message);
+        methods.push({ method: 'Google Vision AI', text: '', error: error.message });
       }
     }
 
-    // Fallback to Tesseract.js
+    // Method 2: Tesseract.js with image preprocessing
     try {
-      console.log('🔄 Using Tesseract.js for OCR...');
-      const { data: { text, confidence } } = await Tesseract.recognize(filePath, 'eng', {
-        logger: m => {
-          if (m.status === 'recognizing text') {
-            console.log(`📊 Tesseract progress: ${Math.round(m.progress * 100)}%`);
-          }
-        }
-      });
-      console.log('✅ Tesseract.js extraction completed');
-      return {
-        text: text,
-        method: 'Tesseract.js',
-        confidence: confidence > 80 ? 'high' : confidence > 60 ? 'medium' : 'low'
-      };
+      console.log('🔄 Attempting OCR with Tesseract.js (with preprocessing)...');
+      const preprocessedResult = await this.extractWithTesseractPreprocessed(filePath);
+      if (preprocessedResult.text && preprocessedResult.text.trim().length > 0) {
+        console.log('✅ Tesseract.js (preprocessed) extraction successful');
+        return {
+          text: preprocessedResult.text,
+          method: 'Tesseract.js (Preprocessed)',
+          confidence: preprocessedResult.confidence,
+          fallbackUsed: methods.length > 0
+        };
+      }
+      methods.push({ method: 'Tesseract.js (Preprocessed)', text: preprocessedResult.text || '', confidence: preprocessedResult.confidence });
     } catch (error) {
-      throw new ApiError(500, `OCR extraction failed: ${error.message}`);
+      console.warn('⚠️ Tesseract.js (preprocessed) failed:', error.message);
+      methods.push({ method: 'Tesseract.js (Preprocessed)', text: '', error: error.message });
     }
+
+    // Method 3: Standard Tesseract.js
+    try {
+      console.log('🔄 Attempting OCR with standard Tesseract.js...');
+      const tesseractResult = await this.extractWithTesseractStandard(filePath);
+      if (tesseractResult.text && tesseractResult.text.trim().length > 0) {
+        console.log('✅ Standard Tesseract.js extraction successful');
+        return {
+          text: tesseractResult.text,
+          method: 'Tesseract.js',
+          confidence: tesseractResult.confidence,
+          fallbackUsed: methods.length > 0
+        };
+      }
+      methods.push({ method: 'Tesseract.js', text: tesseractResult.text || '', confidence: tesseractResult.confidence });
+    } catch (error) {
+      console.warn('⚠️ Standard Tesseract.js failed:', error.message);
+      methods.push({ method: 'Tesseract.js', text: '', error: error.message });
+    }
+
+    // Return the best result from all methods
+    const bestResult = methods.reduce((best, current) => {
+      const currentLength = current.text?.length || 0;
+      const bestLength = best.text?.length || 0;
+      return currentLength > bestLength ? current : best;
+    }, { text: '', method: 'None', confidence: 'low' });
+
+    if (bestResult.text && bestResult.text.trim().length > 0) {
+      console.log(`📝 Using best result from ${bestResult.method}`);
+      return {
+        text: bestResult.text,
+        method: `${bestResult.method} (Best of ${methods.length})`,
+        confidence: bestResult.confidence || 'low',
+        fallbackUsed: true
+      };
+    }
+
+    throw new ApiError(500, `Image OCR extraction failed with all methods: ${methods.map(m => m.method).join(', ')}`);
   }
 
   /**
@@ -162,7 +318,6 @@ class DocumentExtractor {
       const detections = result.textAnnotations;
       
       if (detections && detections.length > 0) {
-        // First annotation contains the full text
         return detections[0].description || '';
       }
       
@@ -174,9 +329,129 @@ class DocumentExtractor {
   }
 
   /**
-   * Parse extracted text to identify artist information
+   * Extract with Tesseract.js using image preprocessing
    */
-  parseExtractedData(text, processingMethod = 'Unknown', processingTime = 0) {
+  async extractWithTesseractPreprocessed(filePath) {
+    try {
+      // Preprocess image for better OCR results
+      const preprocessedPath = await this.preprocessImage(filePath);
+      
+      const { data: { text, confidence } } = await Tesseract.recognize(preprocessedPath, 'eng', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log(`📊 Tesseract (preprocessed) progress: ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
+
+      // Clean up preprocessed image
+      if (preprocessedPath !== filePath && fs.existsSync(preprocessedPath)) {
+        fs.unlinkSync(preprocessedPath);
+      }
+
+      return {
+        text: text,
+        confidence: confidence > 80 ? 'high' : confidence > 60 ? 'medium' : 'low'
+      };
+    } catch (error) {
+      throw new ApiError(500, `Tesseract.js (preprocessed) extraction failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Extract with standard Tesseract.js
+   */
+  async extractWithTesseractStandard(filePath) {
+    try {
+      const { data: { text, confidence } } = await Tesseract.recognize(filePath, 'eng', {
+        logger: m => {
+          if (m.status === 'recognizing text') {
+            console.log(`📊 Tesseract progress: ${Math.round(m.progress * 100)}%`);
+          }
+        }
+      });
+
+      return {
+        text: text,
+        confidence: confidence > 80 ? 'high' : confidence > 60 ? 'medium' : 'low'
+      };
+    } catch (error) {
+      throw new ApiError(500, `Tesseract.js extraction failed: ${error.message}`);
+    }
+  }
+
+  /**
+   * Preprocess image for better OCR results
+   */
+  async preprocessImage(filePath) {
+    try {
+      const outputPath = filePath.replace(/\.(jpg|jpeg|png)$/i, '_processed.png');
+      
+      await sharp(filePath)
+        .greyscale()
+        .normalize()
+        .sharpen()
+        .png()
+        .toFile(outputPath);
+      
+      return outputPath;
+    } catch (error) {
+      console.warn('⚠️ Image preprocessing failed, using original:', error.message);
+      return filePath;
+    }
+  }
+
+  /**
+   * Convert PDF to image and extract text
+   */
+  async extractPDFViaImageConversion(filePath) {
+    // This is a placeholder for PDF to image conversion
+    // In a real implementation, you might use pdf2pic or similar
+    console.log('📄➡️📸 PDF to image conversion not implemented yet');
+    throw new Error('PDF to image conversion not implemented');
+  }
+
+  /**
+   * Convert Word document to image and extract text
+   */
+  async convertWordToImageAndExtract(filePath) {
+    // This is a placeholder for Word to image conversion
+    // In a real implementation, you might use LibreOffice headless or similar
+    console.log('📝➡️📸 Word to image conversion not implemented yet');
+    throw new Error('Word to image conversion not implemented');
+  }
+
+  /**
+   * Calculate text confidence based on content quality
+   */
+  calculateTextConfidence(text) {
+    if (!text || text.length < 10) return 'low';
+    
+    const wordCount = text.split(/\s+/).length;
+    const hasStructuredData = /(?:name|guru|gharana|phone|email|artist|performer)/i.test(text);
+    const hasContactInfo = /(?:@|phone|mobile|\d{10})/i.test(text);
+    const hasProperNouns = /[A-Z][a-z]+\s+[A-Z][a-z]+/.test(text);
+    const hasSpecialChars = /[^\w\s]/.test(text);
+    
+    let score = 0;
+    if (wordCount > 100) score += 3;
+    else if (wordCount > 50) score += 2;
+    else if (wordCount > 20) score += 1;
+    
+    if (hasStructuredData) score += 2;
+    if (hasContactInfo) score += 1;
+    if (hasProperNouns) score += 1;
+    if (!hasSpecialChars || text.match(/[^\w\s]/g).length < text.length * 0.1) score += 1;
+    
+    if (score >= 6) return 'high';
+    if (score >= 3) return 'medium';
+    return 'low';
+  }
+
+  /**
+   * Parse extracted text to identify artist information with enhanced confidence
+   */
+  parseExtractedData(text, processingMethod = 'Unknown', processingTime = 0, confidence = 'medium', fallbackUsed = false) {
     const cleanText = text.replace(/\s+/g, ' ').trim();
     
     const extractedData = {
@@ -189,10 +464,12 @@ class DocumentExtractor {
       extractionMetadata: {
         method: processingMethod,
         processingTime: processingTime,
-        confidence: this.calculateConfidence(cleanText),
+        confidence: confidence,
+        fallbackUsed: fallbackUsed,
         extractedAt: new Date().toISOString(),
         textLength: cleanText.length,
-        wordCount: cleanText.split(/\s+/).length
+        wordCount: cleanText.split(/\s+/).length,
+        qualityScore: this.calculateQualityScore(cleanText)
       }
     };
 
@@ -200,27 +477,25 @@ class DocumentExtractor {
   }
 
   /**
-   * Calculate extraction confidence based on text quality and content
+   * Calculate overall quality score for extracted data
    */
-  calculateConfidence(text) {
-    if (!text || text.length < 10) return 'low';
-    
-    const wordCount = text.split(/\s+/).length;
-    const hasStructuredData = /(?:name|guru|gharana|phone|email|artist|performer)/i.test(text);
-    const hasContactInfo = /(?:@|phone|mobile|\d{10})/i.test(text);
-    const hasProperNouns = /[A-Z][a-z]+\s+[A-Z][a-z]+/.test(text);
-    
+  calculateQualityScore(text) {
     let score = 0;
-    if (wordCount > 50) score += 2;
-    else if (wordCount > 20) score += 1;
-    
-    if (hasStructuredData) score += 2;
-    if (hasContactInfo) score += 1;
-    if (hasProperNouns) score += 1;
-    
-    if (score >= 4) return 'high';
-    if (score >= 2) return 'medium';
-    return 'low';
+    const data = {
+      artistName: this.extractArtistName(text),
+      guruName: this.extractGuruName(text),
+      gharana: this.extractGharana(text),
+      contactDetails: this.extractContactDetails(text),
+      biography: this.extractBiography(text)
+    };
+
+    if (data.artistName) score += 25;
+    if (data.guruName) score += 20;
+    if (data.gharana) score += 15;
+    if (data.contactDetails && Object.keys(data.contactDetails).length > 0) score += 20;
+    if (data.biography && data.biography.length > 100) score += 20;
+
+    return Math.min(score, 100);
   }
 
   /**
@@ -238,7 +513,6 @@ class DocumentExtractor {
       const match = text.match(pattern);
       if (match && match[1] && match[1].trim().length > 2) {
         const name = match[1].trim();
-        // Validate it looks like a name (has at least 2 words, proper capitalization)
         if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/.test(name)) {
           return name;
         }
@@ -261,7 +535,6 @@ class DocumentExtractor {
       const match = text.match(pattern);
       if (match && match[1] && match[1].trim().length > 2) {
         const guru = match[1].trim();
-        // Validate it looks like a name
         if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*$/.test(guru)) {
           return guru;
         }

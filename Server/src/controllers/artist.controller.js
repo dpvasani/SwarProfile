@@ -43,6 +43,11 @@ const uploadAndExtractDocument = asyncHandler(async (req, res) => {
       // Extract data from document
       const extractedData = await documentExtractor.extractFromFile(documentPath, fileType);
 
+      console.log(`📊 Extraction completed with confidence: ${extractedData.extractionMetadata?.confidence}`);
+      console.log(`📈 Quality score: ${extractedData.extractionMetadata?.qualityScore}/100`);
+      console.log(`🔧 Method used: ${extractedData.extractionMetadata?.method}`);
+      console.log(`⏱️ Processing time: ${extractedData.extractionMetadata?.processingTime}ms`);
+
       // Upload document to Cloudinary
       const documentUpload = await uploadOnCloudinary(documentPath);
       if (!documentUpload) {
