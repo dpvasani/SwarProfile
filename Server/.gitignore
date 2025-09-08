@@ -26,6 +26,8 @@ lib-cov
 # Coverage directory used by tools like istanbul
 coverage
 *.lcov
+.config/gen-lang-client-0861651920-c16fdf1b2f08.json
+config/gen-lang-server-0861651920-c16fdf1b2f08.json
 
 # nyc test coverage
 .nyc_output
