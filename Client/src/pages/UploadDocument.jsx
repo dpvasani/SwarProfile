@@ -9,7 +9,13 @@ import {
   PhotoIcon,
   UserIcon,
   PencilIcon,
-  EyeIcon
+  EyeIcon,
+  SparklesIcon,
+  ArrowUturnLeftIcon,
+  ArrowUturnRightIcon,
+  XCircleIcon,
+  MagnifyingGlassIcon,
+  ClipboardDocumentCheckIcon
 } from '@heroicons/react/24/outline';
 
 const UploadDocument = () => {
@@ -21,9 +27,14 @@ const UploadDocument = () => {
   const [saving, setSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [enhancing, setEnhancing] = useState(false);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [summary, setSummary] = useState('');
+  const [history, setHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
   const navigate = useNavigate();
 
-  // Form data for editing
+  // Form data for editing with verification status
   const [formData, setFormData] = useState({
     artistName: '',
     guruName: '',
@@ -37,12 +48,27 @@ const UploadDocument = () => {
     }
   });
 
+  // Field verification status
+  const [fieldVerification, setFieldVerification] = useState({
+    artistName: false,
+    guruName: false,
+    gharana: false,
+    biography: false,
+    description: false,
+    'contactDetails.phone': false,
+    'contactDetails.email': false,
+    'contactDetails.address': false
+  });
+
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
     setError('');
     setResult(null);
     setEditMode(false);
+    setSummary('');
+    setHistory([]);
+    setHistoryIndex(-1);
   };
 
   const handleDrop = (e) => {
@@ -52,10 +78,20 @@ const UploadDocument = () => {
     setError('');
     setResult(null);
     setEditMode(false);
+    setSummary('');
+    setHistory([]);
+    setHistoryIndex(-1);
   };
 
   const handleDragOver = (e) => {
     e.preventDefault();
+  };
+
+  const saveToHistory = (data) => {
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push(JSON.parse(JSON.stringify(data)));
+    setHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
 
   const handleSubmit = async (e) => {
@@ -83,7 +119,7 @@ const UploadDocument = () => {
       setResult(resultData);
       
       // Initialize form data with extracted data
-      setFormData({
+      const initialFormData = {
         artistName: resultData.extractedData.artistName || '',
         guruName: resultData.extractedData.guruName || '',
         gharana: resultData.extractedData.gharana || '',
@@ -94,7 +130,10 @@ const UploadDocument = () => {
           email: resultData.extractedData.contactDetails?.email || '',
           address: resultData.extractedData.contactDetails?.address || ''
         }
-      });
+      };
+      
+      setFormData(initialFormData);
+      saveToHistory(initialFormData);
       
       setFile(null);
       
@@ -113,21 +152,25 @@ const UploadDocument = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     
+    let newFormData;
     if (name.startsWith('contactDetails.')) {
       const field = name.split('.')[1];
-      setFormData(prev => ({
-        ...prev,
+      newFormData = {
+        ...formData,
         contactDetails: {
-          ...prev.contactDetails,
+          ...formData.contactDetails,
           [field]: value
         }
-      }));
+      };
     } else {
-      setFormData(prev => ({
-        ...prev,
+      newFormData = {
+        ...formData,
         [name]: value
-      }));
+      };
     }
+    
+    setFormData(newFormData);
+    saveToHistory(newFormData);
   };
 
   const handlePhotoChange = (e) => {
@@ -139,6 +182,214 @@ const UploadDocument = () => {
         setPhotoPreview(reader.result);
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const handleFieldVerification = (fieldName) => {
+    setFieldVerification(prev => ({
+      ...prev,
+      [fieldName]: !prev[fieldName]
+    }));
+  };
+
+  const handleUndo = () => {
+    if (historyIndex > 0) {
+      setHistoryIndex(historyIndex - 1);
+      setFormData(history[historyIndex - 1]);
+    }
+  };
+
+  const handleRedo = () => {
+    if (historyIndex < history.length - 1) {
+      setHistoryIndex(historyIndex + 1);
+      setFormData(history[historyIndex + 1]);
+    }
+  };
+
+  const enhanceFieldWithAI = async (fieldName, fieldValue) => {
+    if (!fieldValue.trim()) return;
+
+    setEnhancing(true);
+    try {
+      // Mock AI enhancement - replace with actual Gemini API call
+      const response = await fetch('/api/enhance-field', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          field: fieldName,
+          value: fieldValue,
+          context: formData
+        })
+      });
+
+      if (response.ok) {
+        const enhancedData = await response.json();
+        const newFormData = { ...formData };
+        
+        if (fieldName.startsWith('contactDetails.')) {
+          const field = fieldName.split('.')[1];
+          newFormData.contactDetails[field] = enhancedData.enhancedValue;
+        } else {
+          newFormData[fieldName] = enhancedData.enhancedValue;
+        }
+        
+        setFormData(newFormData);
+        saveToHistory(newFormData);
+      }
+    } catch (error) {
+      console.error('AI enhancement failed:', error);
+      // Fallback: Simple text cleaning and formatting
+      const enhanced = fieldValue
+        .replace(/\s+/g, ' ')
+        .trim()
+        .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => punct + ' ' + letter.toUpperCase());
+      
+      const newFormData = { ...formData };
+      if (fieldName.startsWith('contactDetails.')) {
+        const field = fieldName.split('.')[1];
+        newFormData.contactDetails[field] = enhanced;
+      } else {
+        newFormData[fieldName] = enhanced;
+      }
+      
+      setFormData(newFormData);
+      saveToHistory(newFormData);
+    } finally {
+      setEnhancing(false);
+    }
+  };
+
+  const enhanceAllFieldsWithAI = async () => {
+    setEnhancing(true);
+    try {
+      // Mock comprehensive AI enhancement
+      const response = await fetch('/api/enhance-all-fields', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          data: formData,
+          rawText: result?.extractedData?.rawText
+        })
+      });
+
+      if (response.ok) {
+        const enhancedData = await response.json();
+        setFormData(enhancedData.enhancedFormData);
+        saveToHistory(enhancedData.enhancedFormData);
+      }
+    } catch (error) {
+      console.error('Comprehensive AI enhancement failed:', error);
+      // Fallback enhancement
+      const enhanced = { ...formData };
+      Object.keys(enhanced).forEach(key => {
+        if (typeof enhanced[key] === 'string' && enhanced[key]) {
+          enhanced[key] = enhanced[key]
+            .replace(/\s+/g, ' ')
+            .trim()
+            .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => punct + ' ' + letter.toUpperCase());
+        }
+      });
+      
+      if (enhanced.contactDetails) {
+        Object.keys(enhanced.contactDetails).forEach(key => {
+          if (enhanced.contactDetails[key]) {
+            enhanced.contactDetails[key] = enhanced.contactDetails[key]
+              .replace(/\s+/g, ' ')
+              .trim();
+          }
+        });
+      }
+      
+      setFormData(enhanced);
+      saveToHistory(enhanced);
+    } finally {
+      setEnhancing(false);
+    }
+  };
+
+  const generateSummary = async () => {
+    if (!formData.artistName) {
+      setError('Artist name is required to generate summary');
+      return;
+    }
+
+    setGeneratingSummary(true);
+    try {
+      // Mock AI summary generation - replace with actual Gemini API call
+      const response = await fetch('/api/generate-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          artistName: formData.artistName,
+          guruName: formData.guruName,
+          gharana: formData.gharana,
+          biography: formData.biography
+        })
+      });
+
+      if (response.ok) {
+        const summaryData = await response.json();
+        setSummary(summaryData.summary);
+      }
+    } catch (error) {
+      console.error('Summary generation failed:', error);
+      // Fallback summary
+      const parts = [];
+      if (formData.artistName) parts.push(`${formData.artistName} is a classical music artist`);
+      if (formData.gharana) parts.push(`from the ${formData.gharana} gharana`);
+      if (formData.guruName) parts.push(`trained under ${formData.guruName}`);
+      
+      setSummary(parts.join(' ') + '. ' + (formData.biography ? formData.biography.substring(0, 200) + '...' : ''));
+    } finally {
+      setGeneratingSummary(false);
+    }
+  };
+
+  const getComprehensiveAIDetails = async () => {
+    if (!formData.artistName) {
+      setError('Artist name is required for comprehensive AI details');
+      return;
+    }
+
+    setEnhancing(true);
+    try {
+      // Mock comprehensive AI research - replace with actual API calls
+      const response = await fetch('/api/comprehensive-details', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          artistName: formData.artistName,
+          guruName: formData.guruName,
+          gharana: formData.gharana
+        })
+      });
+
+      if (response.ok) {
+        const comprehensiveData = await response.json();
+        const enhancedFormData = {
+          ...formData,
+          biography: comprehensiveData.biography || formData.biography,
+          description: comprehensiveData.description || formData.description,
+          // Add any additional fields from AI research
+        };
+        
+        setFormData(enhancedFormData);
+        saveToHistory(enhancedFormData);
+        setSummary(comprehensiveData.summary || summary);
+      }
+    } catch (error) {
+      console.error('Comprehensive AI details failed:', error);
+      setError('Failed to get comprehensive AI details. Please try again.');
+    } finally {
+      setEnhancing(false);
     }
   };
 
@@ -199,6 +450,57 @@ const UploadDocument = () => {
     }
   };
 
+  const renderFieldWithVerification = (fieldName, label, value, type = 'text', rows = null) => {
+    const isVerified = fieldVerification[fieldName];
+    const InputComponent = rows ? 'textarea' : 'input';
+    
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="block text-sm font-medium text-secondary-700">
+            {label}
+          </label>
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={() => enhanceFieldWithAI(fieldName, value)}
+              disabled={enhancing || !value.trim()}
+              className="text-xs text-primary-600 hover:text-primary-800 disabled:opacity-50 flex items-center"
+              title="Enhance with AI"
+            >
+              <SparklesIcon className="w-3 h-3 mr-1" />
+              AI
+            </button>
+            <button
+              type="button"
+              onClick={() => handleFieldVerification(fieldName)}
+              className={`text-xs flex items-center ${
+                isVerified ? 'text-green-600' : 'text-gray-400'
+              }`}
+              title={isVerified ? 'Verified' : 'Not verified'}
+            >
+              <CheckCircleIcon className="w-3 h-3 mr-1" />
+              {isVerified ? 'Verified' : 'Verify'}
+            </button>
+          </div>
+        </div>
+        <div className={`relative ${isVerified ? 'ring-2 ring-green-200' : ''}`}>
+          <InputComponent
+            type={type}
+            name={fieldName}
+            rows={rows}
+            className={`input-field text-sm ${isVerified ? 'bg-green-50' : ''}`}
+            value={value}
+            onChange={handleInputChange}
+          />
+          {isVerified && (
+            <CheckCircleIcon className="absolute right-2 top-2 w-4 h-4 text-green-500" />
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const getSupportedFormats = () => {
     return [
       { ext: 'PDF', desc: 'Portable Document Format' },
@@ -217,8 +519,8 @@ const UploadDocument = () => {
             Upload Artist Document
           </h1>
           <p className="text-lg text-secondary-600 max-w-2xl mx-auto">
-            Upload documents containing artist information. Our system will automatically 
-            extract and process the content to create artist profiles.
+            Upload documents containing artist information. Our AI-powered system will automatically 
+            extract, format, and enhance the content to create comprehensive artist profiles.
           </p>
         </div>
 
@@ -315,10 +617,10 @@ const UploadDocument = () => {
               </div>
             )}
 
-            {/* Results with Edit Functionality */}
+            {/* Results with Enhanced Edit Functionality */}
             {result && (
               <div className="space-y-6">
-                {/* Success Header */}
+                {/* Success Header with AI Tools */}
                 <div className="card">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -328,6 +630,45 @@ const UploadDocument = () => {
                       </h3>
                     </div>
                     <div className="flex space-x-2">
+                      {/* Undo/Redo Controls */}
+                      <button
+                        onClick={handleUndo}
+                        disabled={historyIndex <= 0}
+                        className="text-sm btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Undo"
+                      >
+                        <ArrowUturnLeftIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={handleRedo}
+                        disabled={historyIndex >= history.length - 1}
+                        className="text-sm btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Redo"
+                      >
+                        <ArrowUturnRightIcon className="w-4 h-4" />
+                      </button>
+                      
+                      {/* AI Enhancement Tools */}
+                      <button
+                        onClick={enhanceAllFieldsWithAI}
+                        disabled={enhancing}
+                        className="text-sm btn-primary disabled:opacity-50"
+                        title="Enhance all fields with AI"
+                      >
+                        <SparklesIcon className="w-4 h-4 mr-1" />
+                        {enhancing ? 'Enhancing...' : 'AI Enhance All'}
+                      </button>
+                      
+                      <button
+                        onClick={getComprehensiveAIDetails}
+                        disabled={enhancing}
+                        className="text-sm btn-primary disabled:opacity-50"
+                        title="Get comprehensive AI details"
+                      >
+                        <MagnifyingGlassIcon className="w-4 h-4 mr-1" />
+                        AI Research
+                      </button>
+                      
                       {!result.artist.isVerified && (
                         <button
                           onClick={handleVerifyArtist}
@@ -337,6 +678,7 @@ const UploadDocument = () => {
                           Verify Artist
                         </button>
                       )}
+                      
                       <button
                         onClick={() => setEditMode(!editMode)}
                         className={`text-sm ${editMode ? 'btn-secondary' : 'btn-primary'}`}
@@ -355,6 +697,32 @@ const UploadDocument = () => {
                       </button>
                     </div>
                   </div>
+                </div>
+
+                {/* AI-Generated Summary */}
+                <div className="card">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-md font-semibold text-secondary-900">
+                      AI-Generated Summary
+                    </h4>
+                    <button
+                      onClick={generateSummary}
+                      disabled={generatingSummary}
+                      className="text-sm btn-primary disabled:opacity-50"
+                    >
+                      <ClipboardDocumentCheckIcon className="w-4 h-4 mr-1" />
+                      {generatingSummary ? 'Generating...' : 'Generate Summary'}
+                    </button>
+                  </div>
+                  {summary ? (
+                    <div className="bg-blue-50 p-4 rounded-lg">
+                      <p className="text-sm text-secondary-700 leading-relaxed">{summary}</p>
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 p-4 rounded-lg text-center">
+                      <p className="text-sm text-secondary-500">Click "Generate Summary" to create an AI-powered summary</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Artist Profile Section */}
@@ -428,6 +796,16 @@ const UploadDocument = () => {
                               </span>
                             </div>
                           )}
+                          
+                          {/* Field Verification Summary */}
+                          <div className="mt-3">
+                            <span className="text-xs font-medium text-secondary-700">Field Verification: </span>
+                            <div className="mt-1">
+                              <span className="text-xs text-green-600">
+                                {Object.values(fieldVerification).filter(Boolean).length} of {Object.keys(fieldVerification).length} verified
+                              </span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -441,112 +819,39 @@ const UploadDocument = () => {
                       </h4>
 
                       {editMode ? (
-                        /* Edit Form */
+                        /* Enhanced Edit Form with Field Verification */
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Artist Name *
-                              </label>
-                              <input
-                                type="text"
-                                name="artistName"
-                                required
-                                className="input-field text-sm"
-                                value={formData.artistName}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('artistName', 'Artist Name *', formData.artistName)}
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Guru Name
-                              </label>
-                              <input
-                                type="text"
-                                name="guruName"
-                                className="input-field text-sm"
-                                value={formData.guruName}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('guruName', 'Guru Name', formData.guruName)}
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Gharana
-                              </label>
-                              <input
-                                type="text"
-                                name="gharana"
-                                className="input-field text-sm"
-                                value={formData.gharana}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('gharana', 'Gharana', formData.gharana)}
                             </div>
 
                             <div>
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Phone
-                              </label>
-                              <input
-                                type="tel"
-                                name="contactDetails.phone"
-                                className="input-field text-sm"
-                                value={formData.contactDetails.phone}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('contactDetails.phone', 'Phone', formData.contactDetails.phone, 'tel')}
                             </div>
 
                             <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Email
-                              </label>
-                              <input
-                                type="email"
-                                name="contactDetails.email"
-                                className="input-field text-sm"
-                                value={formData.contactDetails.email}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('contactDetails.email', 'Email', formData.contactDetails.email, 'email')}
                             </div>
 
                             <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Address
-                              </label>
-                              <textarea
-                                name="contactDetails.address"
-                                rows={2}
-                                className="input-field text-sm"
-                                value={formData.contactDetails.address}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('contactDetails.address', 'Address', formData.contactDetails.address, 'text', 2)}
                             </div>
 
                             <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Biography
-                              </label>
-                              <textarea
-                                name="biography"
-                                rows={3}
-                                className="input-field text-sm"
-                                value={formData.biography}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('biography', 'Biography', formData.biography, 'text', 4)}
                             </div>
 
                             <div className="md:col-span-2">
-                              <label className="block text-sm font-medium text-secondary-700 mb-1">
-                                Description
-                              </label>
-                              <textarea
-                                name="description"
-                                rows={2}
-                                className="input-field text-sm"
-                                value={formData.description}
-                                onChange={handleInputChange}
-                              />
+                              {renderFieldWithVerification('description', 'Description', formData.description, 'text', 3)}
                             </div>
                           </div>
 
@@ -580,33 +885,36 @@ const UploadDocument = () => {
                           </div>
                         </div>
                       ) : (
-                        /* View Mode */
+                        /* Enhanced View Mode */
                         <div className="space-y-4">
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             {result.extractedData.artistName && (
-                              <div>
+                              <div className={`p-3 rounded-lg ${fieldVerification.artistName ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                                 <label className="block text-sm font-medium text-secondary-700">Artist Name</label>
                                 <p className="text-secondary-900 text-sm">{result.extractedData.artistName}</p>
+                                {fieldVerification.artistName && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-1" />}
                               </div>
                             )}
                             {result.extractedData.guruName && (
-                              <div>
+                              <div className={`p-3 rounded-lg ${fieldVerification.guruName ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                                 <label className="block text-sm font-medium text-secondary-700">Guru Name</label>
                                 <p className="text-secondary-900 text-sm">{result.extractedData.guruName}</p>
+                                {fieldVerification.guruName && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-1" />}
                               </div>
                             )}
                             {result.extractedData.gharana && (
-                              <div>
+                              <div className={`p-3 rounded-lg ${fieldVerification.gharana ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                                 <label className="block text-sm font-medium text-secondary-700">Gharana</label>
                                 <p className="text-secondary-900 text-sm">{result.extractedData.gharana}</p>
+                                {fieldVerification.gharana && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-1" />}
                               </div>
                             )}
                           </div>
 
                           {result.extractedData.contactDetails && (
-                            <div>
+                            <div className="p-3 rounded-lg bg-secondary-50">
                               <label className="block text-sm font-medium text-secondary-700 mb-2">Contact Details</label>
-                              <div className="bg-secondary-50 p-3 rounded-lg text-sm">
+                              <div className="space-y-1 text-sm">
                                 {result.extractedData.contactDetails.phone && (
                                   <p><strong>Phone:</strong> {result.extractedData.contactDetails.phone}</p>
                                 )}
@@ -621,9 +929,10 @@ const UploadDocument = () => {
                           )}
 
                           {result.extractedData.biography && (
-                            <div>
+                            <div className={`p-3 rounded-lg ${fieldVerification.biography ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
                               <label className="block text-sm font-medium text-secondary-700 mb-2">Biography</label>
                               <p className="text-secondary-900 text-sm leading-relaxed">{result.extractedData.biography}</p>
+                              {fieldVerification.biography && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-2" />}
                             </div>
                           )}
                         </div>
@@ -663,6 +972,19 @@ const UploadDocument = () => {
                             description: '',
                             contactDetails: { phone: '', email: '', address: '' }
                           });
+                          setFieldVerification({
+                            artistName: false,
+                            guruName: false,
+                            gharana: false,
+                            biography: false,
+                            description: false,
+                            'contactDetails.phone': false,
+                            'contactDetails.email': false,
+                            'contactDetails.address': false
+                          });
+                          setSummary('');
+                          setHistory([]);
+                          setHistoryIndex(-1);
                         }}
                         className="btn-secondary text-sm"
                       >
@@ -694,6 +1016,21 @@ const UploadDocument = () => {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* AI Enhancement Features */}
+              <div className="card">
+                <h3 className="text-lg font-semibold text-secondary-900 mb-4">
+                  🤖 AI Enhancement Features
+                </h3>
+                <ul className="space-y-2 text-sm text-secondary-600">
+                  <li>• <strong>Smart Data Formatting:</strong> Clean and structure extracted text</li>
+                  <li>• <strong>Field-level Enhancement:</strong> Improve individual fields with AI</li>
+                  <li>• <strong>Comprehensive Research:</strong> Get detailed artist information</li>
+                  <li>• <strong>Auto-generated Summaries:</strong> Create professional profiles</li>
+                  <li>• <strong>Field Verification:</strong> Mark fields as verified</li>
+                  <li>• <strong>Undo/Redo:</strong> Track and revert changes</li>
+                </ul>
               </div>
 
               {/* Processing Info */}

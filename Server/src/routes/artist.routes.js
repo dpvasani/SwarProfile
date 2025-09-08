@@ -17,6 +17,12 @@ import { validateDocumentFile, validateImageFile, sanitizeBody } from "../middle
 
 const router = Router();
 
+// AI Enhancement routes
+router.route("/admin/enhance-field").post(verifyJWT, verifyAdmin, sanitizeBody, enhanceField);
+router.route("/admin/enhance-all").post(verifyJWT, verifyAdmin, sanitizeBody, enhanceAllFields);
+router.route("/admin/generate-summary").post(verifyJWT, verifyAdmin, sanitizeBody, generateSummary);
+router.route("/admin/comprehensive-details").post(verifyJWT, verifyAdmin, sanitizeBody, getComprehensiveDetails);
+
 // Public routes (User access)
 router.route("/").get(sanitizeBody, getAllArtistsUser);
 router.route("/:id").get(sanitizeBody, getArtistById);
