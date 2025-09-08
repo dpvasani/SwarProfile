@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { 
   MagnifyingGlassIcon, 
   UserIcon,
@@ -15,10 +16,11 @@ const ArtistGallery = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
+  const { isAdmin } = useAuth();
 
   useEffect(() => {
     fetchArtists();
-  }, [currentPage]);
+  }, [currentPage, isAdmin]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -27,28 +29,59 @@ const ArtistGallery = () => {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchTerm]);
+  }, [searchTerm, isAdmin]);
 
-  const fetchArtists = async () => {
+  const fetchArtists = React.useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/artists', {
-        params: {
-          page: currentPage,
-          limit: 12,
-          search: searchTerm.trim() || undefined,
-        },
-      });
-      
-      setArtists(response.data.data.artists);
-      setPagination(response.data.data.pagination);
+
+      if (isAdmin) {
+        // Admins get the full artists list (paginated) from admin endpoint
+        const response = await axios.get('/artists/admin/all', {
+          params: {
+            page: currentPage,
+            limit: 12,
+            search: searchTerm.trim() || undefined,
+          },
+        });
+
+        const data = response.data.data; // paginate object with docs
+        const docs = data.docs || [];
+        // Normalize to minimal view used by the gallery
+        setArtists(docs.map(a => ({
+          _id: a._id,
+          artistName: a.artistName,
+          guruName: a.guruName,
+          gharana: a.gharana,
+          profilePhoto: a.profilePhoto,
+        })));
+
+        setPagination({
+          currentPage: data.page,
+          totalPages: data.totalPages,
+          totalItems: data.totalDocs,
+        });
+      } else {
+        // Public users see only verified/completed artists
+        const response = await axios.get('/artists', {
+          params: {
+            page: currentPage,
+            limit: 12,
+            search: searchTerm.trim() || undefined,
+          },
+        });
+
+        setArtists(response.data.data.artists);
+        setPagination(response.data.data.pagination);
+      }
+
     } catch (error) {
       setError('Failed to fetch artists');
       console.error('Error fetching artists:', error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, isAdmin, searchTerm]);
 
   const handleSearch = (e) => {
     e.preventDefault();
