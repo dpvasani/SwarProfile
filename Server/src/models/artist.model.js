@@ -166,6 +166,8 @@ artistSchema.methods.getUserView = function() {
     guruName: this.guruName,
     gharana: this.gharana,
     profilePhoto: this.profilePhoto,
+    aiGeneratedSummary: this.aiGeneratedSummary,
+    biography: this.biography,
     createdAt: this.createdAt,
   };
 };

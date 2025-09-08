@@ -206,7 +206,6 @@ const getArtistByIdAdmin = asyncHandler(async (req, res) => {
  */
 const getArtistById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const isAdmin = req.user && req.user.role === 'admin'; // Assuming you have role field
 
   const artist = await Artist.findById(id)
     .populate('createdBy', 'fullName email')
@@ -216,8 +215,8 @@ const getArtistById = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Artist not found");
   }
 
-  // Return appropriate view based on user role
-  const artistData = isAdmin ? artist.getAdminView() : artist.getUserView();
+  // For public route, return user view (limited information)
+  const artistData = artist.getUserView();
 
   return res.status(200).json(
     new ApiResponse(200, { artist: artistData }, "Artist retrieved successfully")
