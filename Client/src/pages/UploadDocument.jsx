@@ -211,52 +211,27 @@ const UploadDocument = () => {
 
     setEnhancing(true);
     try {
-      // Mock AI enhancement - replace with actual Gemini API call
-      const response = await fetch('http://localhost:4000/api/v1/artists/admin/enhance-field', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          field: fieldName,
-          value: fieldValue,
-          context: formData
-        })
+      const response = await axios.post('/artists/admin/enhance-field', {
+        field: fieldName,
+        value: fieldValue,
+        context: formData
       });
 
-      if (response.ok) {
-        const enhancedData = await response.json();
-        const newFormData = { ...formData };
-        
-        if (fieldName.startsWith('contactDetails.')) {
-          const field = fieldName.split('.')[1];
-          newFormData.contactDetails[field] = enhancedData.enhancedValue;
-        } else {
-          newFormData[fieldName] = enhancedData.enhancedValue;
-        }
-        
-        setFormData(newFormData);
-        saveToHistory(newFormData);
-      }
-    } catch (error) {
-      console.error('AI enhancement failed:', error);
-      // Fallback: Simple text cleaning and formatting
-      const enhanced = fieldValue
-        .replace(/\s+/g, ' ')
-        .trim()
-        .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => punct + ' ' + letter.toUpperCase());
-      
+      const enhancedValue = response.data.data.enhancedValue;
       const newFormData = { ...formData };
+      
       if (fieldName.startsWith('contactDetails.')) {
         const field = fieldName.split('.')[1];
-        newFormData.contactDetails[field] = enhanced;
+        newFormData.contactDetails[field] = enhancedValue;
       } else {
-        newFormData[fieldName] = enhanced;
+        newFormData[fieldName] = enhancedValue;
       }
       
       setFormData(newFormData);
       saveToHistory(newFormData);
+    } catch (error) {
+      console.error('AI enhancement failed:', error);
+      setError(`Failed to enhance ${fieldName}: ${error.response?.data?.message || error.message}`);
     } finally {
       setEnhancing(false);
     }
@@ -265,49 +240,17 @@ const UploadDocument = () => {
   const enhanceAllFieldsWithAI = async () => {
     setEnhancing(true);
     try {
-      // Mock comprehensive AI enhancement
-      const response = await fetch('http://localhost:4000/api/v1/artists/admin/enhance-all', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          data: formData,
-          rawText: result?.extractedData?.rawText
-        })
+      const response = await axios.post('/artists/admin/enhance-all', {
+        data: formData,
+        rawText: result?.extractedData?.rawText
       });
 
-      if (response.ok) {
-        const enhancedData = await response.json();
-        setFormData(enhancedData.enhancedFormData);
-        saveToHistory(enhancedData.enhancedFormData);
-      }
+      const enhancedFormData = response.data.data.enhancedFormData;
+      setFormData(enhancedFormData);
+      saveToHistory(enhancedFormData);
     } catch (error) {
       console.error('Comprehensive AI enhancement failed:', error);
-      // Fallback enhancement
-      const enhanced = { ...formData };
-      Object.keys(enhanced).forEach(key => {
-        if (typeof enhanced[key] === 'string' && enhanced[key]) {
-          enhanced[key] = enhanced[key]
-            .replace(/\s+/g, ' ')
-            .trim()
-            .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => punct + ' ' + letter.toUpperCase());
-        }
-      });
-      
-      if (enhanced.contactDetails) {
-        Object.keys(enhanced.contactDetails).forEach(key => {
-          if (enhanced.contactDetails[key]) {
-            enhanced.contactDetails[key] = enhanced.contactDetails[key]
-              .replace(/\s+/g, ' ')
-              .trim();
-          }
-        });
-      }
-      
-      setFormData(enhanced);
-      saveToHistory(enhanced);
+      setError(`Failed to enhance all fields: ${error.response?.data?.message || error.message}`);
     } finally {
       setEnhancing(false);
     }
@@ -321,34 +264,18 @@ const UploadDocument = () => {
 
     setGeneratingSummary(true);
     try {
-      // Mock AI summary generation - replace with actual Gemini API call
-      const response = await fetch('http://localhost:4000/api/v1/artists/admin/generate-summary', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          artistName: formData.artistName,
-          guruName: formData.guruName,
-          gharana: formData.gharana,
-          biography: formData.biography
-        })
+      const response = await axios.post('/artists/admin/generate-summary', {
+        artistName: formData.artistName,
+        guruName: formData.guruName,
+        gharana: formData.gharana,
+        biography: formData.biography
       });
 
-      if (response.ok) {
-        const summaryData = await response.json();
-        setSummary(summaryData.summary);
-      }
+      const summary = response.data.data.summary;
+      setSummary(summary);
     } catch (error) {
       console.error('Summary generation failed:', error);
-      // Fallback summary
-      const parts = [];
-      if (formData.artistName) parts.push(`${formData.artistName} is a classical music artist`);
-      if (formData.gharana) parts.push(`from the ${formData.gharana} gharana`);
-      if (formData.guruName) parts.push(`trained under ${formData.guruName}`);
-      
-      setSummary(parts.join(' ') + '. ' + (formData.biography ? formData.biography.substring(0, 200) + '...' : ''));
+      setError(`Failed to generate summary: ${error.response?.data?.message || error.message}`);
     } finally {
       setGeneratingSummary(false);
     }
@@ -362,36 +289,25 @@ const UploadDocument = () => {
 
     setEnhancing(true);
     try {
-      // Mock comprehensive AI research - replace with actual API calls
-      const response = await fetch('http://localhost:4000/api/v1/artists/admin/comprehensive-details', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          artistName: formData.artistName,
-          guruName: formData.guruName,
-          gharana: formData.gharana
-        })
+      const response = await axios.post('/artists/admin/comprehensive-details', {
+        artistName: formData.artistName,
+        guruName: formData.guruName,
+        gharana: formData.gharana
       });
 
-      if (response.ok) {
-        const comprehensiveData = await response.json();
-        const enhancedFormData = {
-          ...formData,
-          biography: comprehensiveData.biography || formData.biography,
-          description: comprehensiveData.description || formData.description,
-          // Add any additional fields from AI research
-        };
-        
-        setFormData(enhancedFormData);
-        saveToHistory(enhancedFormData);
-        setSummary(comprehensiveData.summary || summary);
-      }
+      const comprehensiveData = response.data.data;
+      const enhancedFormData = {
+        ...formData,
+        biography: comprehensiveData.biography || formData.biography,
+        description: comprehensiveData.description || formData.description,
+      };
+      
+      setFormData(enhancedFormData);
+      saveToHistory(enhancedFormData);
+      setSummary(comprehensiveData.summary || summary);
     } catch (error) {
       console.error('Comprehensive AI details failed:', error);
-      setError('Failed to get comprehensive AI details. Please try again.');
+      setError(`Failed to get comprehensive AI details: ${error.response?.data?.message || error.message}`);
     } finally {
       setEnhancing(false);
     }

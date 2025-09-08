@@ -359,18 +359,22 @@ const getExtractionStats = asyncHandler(async (req, res) => {
 const enhanceField = asyncHandler(async (req, res) => {
   const { field, value, context } = req.body;
 
+  console.log('Enhance field request:', { field, value: value?.substring(0, 50) + '...' });
+
   if (!field || !value) {
     throw new ApiError(400, "Field name and value are required");
   }
 
   try {
     const enhancedValue = await aiEnhancer.enhanceField(field, value, context);
+    console.log('Field enhanced successfully:', field);
     
     return res.status(200).json(
-      new ApiResponse(200, { enhancedValue }, "Field enhanced successfully")
+      new ApiResponse(200, { enhancedValue }, `Field '${field}' enhanced successfully`)
     );
   } catch (error) {
-    throw new ApiError(500, `Field enhancement failed: ${error.message}`);
+    console.error('Field enhancement error:', error);
+    throw new ApiError(500, `Field enhancement failed for '${field}': ${error.message}`);
   }
 });
 
@@ -381,17 +385,21 @@ const enhanceField = asyncHandler(async (req, res) => {
 const enhanceAllFields = asyncHandler(async (req, res) => {
   const { data, rawText } = req.body;
 
+  console.log('Enhance all fields request for artist:', data?.artistName);
+
   if (!data) {
     throw new ApiError(400, "Data is required for enhancement");
   }
 
   try {
     const enhancedFormData = await aiEnhancer.enhanceAllFields(data, rawText);
+    console.log('All fields enhanced successfully');
     
     return res.status(200).json(
       new ApiResponse(200, { enhancedFormData }, "All fields enhanced successfully")
     );
   } catch (error) {
+    console.error('All fields enhancement error:', error);
     throw new ApiError(500, `Comprehensive enhancement failed: ${error.message}`);
   }
 });
@@ -403,22 +411,26 @@ const enhanceAllFields = asyncHandler(async (req, res) => {
 const generateSummary = asyncHandler(async (req, res) => {
   const { artistName, guruName, gharana, biography } = req.body;
 
+  console.log('Generate summary request for:', artistName);
+
   if (!artistName) {
     throw new ApiError(400, "Artist name is required for summary generation");
   }
 
   try {
-    const summary = await aiEnhancer.generateSummary({
+    const summaryText = await aiEnhancer.generateSummary({
       artistName,
       guruName,
       gharana,
       biography
     });
+    console.log('Summary generated successfully');
     
     return res.status(200).json(
-      new ApiResponse(200, { summary }, "Summary generated successfully")
+      new ApiResponse(200, { summary: summaryText }, "Summary generated successfully")
     );
   } catch (error) {
+    console.error('Summary generation error:', error);
     throw new ApiError(500, `Summary generation failed: ${error.message}`);
   }
 });
@@ -430,21 +442,25 @@ const generateSummary = asyncHandler(async (req, res) => {
 const getComprehensiveDetails = asyncHandler(async (req, res) => {
   const { artistName, guruName, gharana } = req.body;
 
+  console.log('Get comprehensive details request for:', artistName);
+
   if (!artistName) {
     throw new ApiError(400, "Artist name is required for comprehensive details");
   }
 
   try {
-    const comprehensiveData = await aiEnhancer.getComprehensiveDetails({
+    const details = await aiEnhancer.getComprehensiveDetails({
       artistName,
       guruName,
       gharana
     });
+    console.log('Comprehensive details retrieved successfully');
     
     return res.status(200).json(
-      new ApiResponse(200, comprehensiveData, "Comprehensive details retrieved successfully")
+      new ApiResponse(200, details, "Comprehensive details retrieved successfully")
     );
   } catch (error) {
+    console.error('Comprehensive details error:', error);
     throw new ApiError(500, `Comprehensive details retrieval failed: ${error.message}`);
   }
 });
