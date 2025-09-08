@@ -4,6 +4,7 @@ import {
   getAllArtistsAdmin,
   getAllArtistsUser,
   getArtistById,
+  getArtistByIdAdmin,
   updateArtist,
   updateArtistPhoto,
   verifyArtist,
@@ -64,6 +65,8 @@ router.route("/admin/upload").post(
 router.route("/admin/all").get(verifyJWT, verifyAdmin, sanitizeBody, getAllArtistsAdmin);
 
 router.route("/admin/stats").get(verifyJWT, verifyAdmin, sanitizeBody, getExtractionStats);
+
+router.route("/admin/:id").get(verifyJWT, verifyAdmin, sanitizeBody, getArtistByIdAdmin);
 
 router.route("/admin/:id").patch(verifyJWT, verifyAdmin, sanitizeBody, updateArtist);
 

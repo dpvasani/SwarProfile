@@ -26,10 +26,17 @@ const EditArtist = () => {
     gharana: '',
     biography: '',
     description: '',
+    aiGeneratedSummary: '',
     contactDetails: {
       phone: '',
       email: '',
-      address: ''
+      address: '',
+      website: '',
+      instagram: '',
+      facebook: '',
+      twitter: '',
+      youtube: '',
+      linkedin: ''
     }
   });
 
@@ -40,7 +47,7 @@ const EditArtist = () => {
   const fetchArtist = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`/artists/${id}`);
+      const response = await axios.get(`/artists/admin/${id}`);
       const artistData = response.data.data.artist;
       
       setArtist(artistData);
@@ -50,10 +57,17 @@ const EditArtist = () => {
         gharana: artistData.gharana || '',
         biography: artistData.biography || '',
         description: artistData.description || '',
+        aiGeneratedSummary: artistData.aiGeneratedSummary || '',
         contactDetails: {
           phone: artistData.contactDetails?.phone || '',
           email: artistData.contactDetails?.email || '',
-          address: artistData.contactDetails?.address || ''
+          address: artistData.contactDetails?.address || '',
+          website: artistData.contactDetails?.website || '',
+          instagram: artistData.contactDetails?.instagram || '',
+          facebook: artistData.contactDetails?.facebook || '',
+          twitter: artistData.contactDetails?.twitter || '',
+          youtube: artistData.contactDetails?.youtube || '',
+          linkedin: artistData.contactDetails?.linkedin || ''
         }
       });
     } catch (error) {
@@ -396,6 +410,92 @@ const EditArtist = () => {
                     />
                   </div>
 
+                  <div>
+                    <label htmlFor="contactDetails.website" className="block text-sm font-medium text-secondary-700 mb-2">
+                      Website
+                    </label>
+                    <input
+                      type="url"
+                      id="contactDetails.website"
+                      name="contactDetails.website"
+                      className="input-field"
+                      value={formData.contactDetails.website}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactDetails.instagram" className="block text-sm font-medium text-secondary-700 mb-2">
+                      Instagram
+                    </label>
+                    <input
+                      type="text"
+                      id="contactDetails.instagram"
+                      name="contactDetails.instagram"
+                      className="input-field"
+                      placeholder="username (without @)"
+                      value={formData.contactDetails.instagram}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactDetails.facebook" className="block text-sm font-medium text-secondary-700 mb-2">
+                      Facebook
+                    </label>
+                    <input
+                      type="text"
+                      id="contactDetails.facebook"
+                      name="contactDetails.facebook"
+                      className="input-field"
+                      value={formData.contactDetails.facebook}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactDetails.twitter" className="block text-sm font-medium text-secondary-700 mb-2">
+                      Twitter/X
+                    </label>
+                    <input
+                      type="text"
+                      id="contactDetails.twitter"
+                      name="contactDetails.twitter"
+                      className="input-field"
+                      placeholder="username (without @)"
+                      value={formData.contactDetails.twitter}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactDetails.youtube" className="block text-sm font-medium text-secondary-700 mb-2">
+                      YouTube
+                    </label>
+                    <input
+                      type="text"
+                      id="contactDetails.youtube"
+                      name="contactDetails.youtube"
+                      className="input-field"
+                      value={formData.contactDetails.youtube}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="contactDetails.linkedin" className="block text-sm font-medium text-secondary-700 mb-2">
+                      LinkedIn
+                    </label>
+                    <input
+                      type="text"
+                      id="contactDetails.linkedin"
+                      name="contactDetails.linkedin"
+                      className="input-field"
+                      value={formData.contactDetails.linkedin}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
                   <div className="md:col-span-2">
                     <label htmlFor="biography" className="block text-sm font-medium text-secondary-700 mb-2">
                       Biography
@@ -420,6 +520,20 @@ const EditArtist = () => {
                       rows={3}
                       className="input-field"
                       value={formData.description}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label htmlFor="aiGeneratedSummary" className="block text-sm font-medium text-secondary-700 mb-2">
+                      AI Generated Summary
+                    </label>
+                    <textarea
+                      id="aiGeneratedSummary"
+                      name="aiGeneratedSummary"
+                      rows={3}
+                      className="input-field"
+                      value={formData.aiGeneratedSummary}
                       onChange={handleInputChange}
                     />
                   </div>

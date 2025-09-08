@@ -182,6 +182,26 @@ const getAllArtistsUser = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get single artist by ID (Admin view)
+ * Admin only
+ */
+const getArtistByIdAdmin = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const artist = await Artist.findById(id)
+    .populate('createdBy', 'fullName email')
+    .populate('verifiedBy', 'fullName email');
+
+  if (!artist) {
+    throw new ApiError(404, "Artist not found");
+  }
+
+  return res.status(200).json(
+    new ApiResponse(200, { artist: artist.getAdminView() }, "Artist retrieved successfully")
+  );
+});
+
+/**
  * Get single artist by ID
  */
 const getArtistById = asyncHandler(async (req, res) => {
@@ -219,13 +239,21 @@ const updateArtist = asyncHandler(async (req, res) => {
 
   // Update allowed fields
   const allowedUpdates = [
-    'artistName', 'guruName', 'gharana', 'contactDetails', 
+    'artistName', 'guruName', 'gharana', 'contactDetails',
     'biography', 'description', 'aiGeneratedSummary', 'additionalFields'
   ];
 
   allowedUpdates.forEach(field => {
     if (updateData[field] !== undefined) {
-      artist[field] = updateData[field];
+      if (field === 'contactDetails') {
+        // Merge contact details to preserve existing fields
+        artist.contactDetails = {
+          ...artist.contactDetails,
+          ...updateData.contactDetails
+        };
+      } else {
+        artist[field] = updateData[field];
+      }
     }
   });
 
@@ -488,6 +516,7 @@ export {
   getAllArtistsAdmin,
   getAllArtistsUser,
   getArtistById,
+  getArtistByIdAdmin,
   updateArtist,
   updateArtistPhoto,
   verifyArtist,
