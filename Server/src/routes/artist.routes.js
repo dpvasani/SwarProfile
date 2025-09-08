@@ -21,11 +21,32 @@ import { validateDocumentFile, validateImageFile, sanitizeBody } from "../middle
 
 const router = Router();
 
-// AI Enhancement routes
+// AI Enhancement routes (optimized workflow)
 router.route("/admin/enhance-field").post(verifyJWT, verifyAdmin, sanitizeBody, enhanceField);
 router.route("/admin/enhance-all").post(verifyJWT, verifyAdmin, sanitizeBody, enhanceAllFields);
 router.route("/admin/generate-summary").post(verifyJWT, verifyAdmin, sanitizeBody, generateSummary);
 router.route("/admin/comprehensive-details").post(verifyJWT, verifyAdmin, sanitizeBody, getComprehensiveDetails);
+
+// AI Provider status and testing routes
+router.route("/admin/ai-status").get(verifyJWT, verifyAdmin, async (req, res) => {
+  try {
+    const aiEnhancer = new (await import("../utils/aiEnhancer.js")).default();
+    const status = await aiEnhancer.getProviderStatus();
+    res.json(new (await import("../utils/ApiResponse.js")).ApiResponse(200, status, "AI provider status retrieved"));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+router.route("/admin/test-ai").post(verifyJWT, verifyAdmin, async (req, res) => {
+  try {
+    const aiEnhancer = new (await import("../utils/aiEnhancer.js")).default();
+    const results = await aiEnhancer.testProviders();
+    res.json(new (await import("../utils/ApiResponse.js")).ApiResponse(200, results, "AI providers tested"));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 // Public routes (User access)
 router.route("/").get(sanitizeBody, getAllArtistsUser);

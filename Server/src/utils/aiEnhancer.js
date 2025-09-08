@@ -1,196 +1,295 @@
+/**
+ * AI Enhancement Service - Optimized Workflow Implementation
+ * Step 3: Dual-Mode Enhancement (Structured + Summary)
+ */
+
+import AIProviders from './aiProviders.js';
 import { ApiError } from './ApiError.js';
-import dotenv from 'dotenv';
-dotenv.config();
 
 class AIEnhancer {
   constructor() {
-    this.geminiApiKey = process.env.GEMINI_API_KEY;
-    this.geminiBaseURL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent';
-    console.log('AIEnhancer initialized with Gemini API key:', this.geminiApiKey ? 'Present' : 'Missing');
+    this.aiProviders = new AIProviders();
+    console.log('🤖 AIEnhancer initialized with optimized workflow');
   }
 
   /**
-   * Make API call to Gemini
+   * Step 3 - Mode 1: Structured Mode
+   * Purpose: Guaranteed structured JSON for search/filters
    */
-  async callGeminiAPI(prompt) {
-    // If no Gemini key, skip external AI calls
-    if (!this.geminiApiKey) {
-      console.warn('No Gemini API key found, using fallback enhancement');
-      return null;
-    }
-
-    // Try multiple possible Gemini/Generative Language endpoints to handle account differences
-    const endpoints = [
-      // Common REST endpoints
-      `https://generativelanguage.googleapis.com/v1/models/text-bison-001:generate?key=${this.geminiApiKey}`,
-      `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key=${this.geminiApiKey}`,
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
-      `https://generativelanguage.googleapis.com/v1/models/gemini-1.3:generate?key=${this.geminiApiKey}`,
-      // older shape
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1:generate?key=${this.geminiApiKey}`
-    ];
-
-    for (const url of endpoints) {
+  async enhanceStructured(cleanedExtractedData, rawText) {
+    try {
+      console.log('🔧 Starting structured enhancement...');
+      
+      const prompt = this.createStructuredPrompt(cleanedExtractedData, rawText);
+      
       try {
-        this.lastTriedGeminiUrl = url;
-        // Choose request body shape based on endpoint
-        let body;
-        if (url.includes('text-bison')) {
-          body = JSON.stringify({ prompt: { text: prompt }, temperature: 0.2, maxOutputTokens: 512 });
-        } else if (url.includes('generateContent')) {
-          body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
-        } else {
-          // generic/gemini models
-          body = JSON.stringify({ prompt: { text: prompt }, temperature: 0.2, maxOutputTokens: 512 });
-        }
-
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body
+        const aiResponse = await this.aiProviders.callWithFallback('structured', prompt, {
+          temperature: 0.1, // Low temperature for structured output
+          maxTokens: 1024
         });
 
-        const raw = await res.text();
-        if (!res.ok) {
-          console.warn(`Gemini endpoint returned non-OK: ${res.status} ${res.statusText} - tried ${url} - body: ${raw}`);
-          // try next endpoint
-          continue;
-        }
-
-        // Parse and extract candidate text across response shapes
-        let data;
-        try {
-          data = JSON.parse(raw);
-        } catch (parseErr) {
-          // If not JSON, return raw text
-          return raw || null;
-        }
-
-        // possible fields where content may appear
-        const candidateText =
-          data.candidates?.[0]?.content?.parts?.[0]?.text ||
-          data.candidates?.[0]?.content ||
-          data.output?.[0]?.content ||
-          data.reply?.content ||
-          data.result?.content ||
-          data.output?.text ||
-          data.choices?.[0]?.message?.content ||
-          data.choices?.[0]?.text ||
-          null;
-
-        if (candidateText) return typeof candidateText === 'string' ? candidateText : JSON.stringify(candidateText);
-
-        // fallback: stringify full response
-        return JSON.stringify(data);
-      } catch (error) {
-        console.error(`Gemini attempt failed for ${url}:`, error);
-        // try next endpoint
+        // Parse AI response as JSON
+        const enhancedData = this.parseStructuredResponse(aiResponse.result);
+        
+        console.log(`✅ Structured enhancement completed using ${aiResponse.provider}`);
+        return {
+          ...enhancedData,
+          _metadata: {
+            provider: aiResponse.provider,
+            model: aiResponse.model,
+            mode: 'structured'
+          }
+        };
+      } catch (aiError) {
+        console.warn('⚠️ AI structured enhancement failed, using deterministic fallback:', aiError.message);
+        return this.deterministicFallback(cleanedExtractedData);
       }
+    } catch (error) {
+      console.error('❌ Structured enhancement error:', error);
+      return this.deterministicFallback(cleanedExtractedData);
     }
-
-    console.error('All Gemini endpoints failed or returned no usable content');
-    return null;
   }
 
   /**
-   * Enhance a single field with AI
+   * Step 3 - Mode 2: Summary Mode
+   * Purpose: Rich narrative for profile pages
+   */
+  async enhanceSummary(cleanedExtractedData, rawText) {
+    try {
+      console.log('📝 Starting summary enhancement...');
+      
+      const prompt = this.createSummaryPrompt(cleanedExtractedData, rawText);
+      
+      try {
+        const aiResponse = await this.aiProviders.callWithFallback('summary', prompt, {
+          temperature: 0.3, // Higher temperature for creative writing
+          maxTokens: 1024
+        });
+
+        const summaryData = this.parseSummaryResponse(aiResponse.result);
+        
+        console.log(`✅ Summary enhancement completed using ${aiResponse.provider}`);
+        return {
+          ...summaryData,
+          _metadata: {
+            provider: aiResponse.provider,
+            model: aiResponse.model,
+            mode: 'summary'
+          }
+        };
+      } catch (aiError) {
+        console.warn('⚠️ AI summary enhancement failed, using basic fallback:', aiError.message);
+        return this.basicSummaryFallback(cleanedExtractedData);
+      }
+    } catch (error) {
+      console.error('❌ Summary enhancement error:', error);
+      return this.basicSummaryFallback(cleanedExtractedData);
+    }
+  }
+
+  /**
+   * Create structured enhancement prompt
+   */
+  createStructuredPrompt(cleanedData, rawText) {
+    return `Extract and enhance the following artist information into clean, structured JSON format.
+
+INPUT DATA:
+${JSON.stringify(cleanedData, null, 2)}
+
+RAW TEXT:
+${rawText.substring(0, 2000)}...
+
+INSTRUCTIONS:
+1. Clean and format all names properly (proper capitalization, titles like "Ustad", "Pandit")
+2. Standardize phone numbers and email addresses
+3. Write a concise, professional biography
+4. Return ONLY valid JSON in this exact format:
+
+{
+  "artistName": "properly formatted name",
+  "guruName": "properly formatted guru name with title",
+  "gharana": "gharana name without 'gharana' suffix",
+  "biography": "2-3 sentence professional biography",
+  "contactDetails": {
+    "phone": "standardized phone format",
+    "email": "lowercase email",
+    "address": "properly formatted address"
+  }
+}
+
+Return only the JSON, no additional text.`;
+  }
+
+  /**
+   * Create summary enhancement prompt
+   */
+  createSummaryPrompt(cleanedData, rawText) {
+    const { artistName, guruName, gharana } = cleanedData;
+    
+    return `Write a comprehensive profile for this classical music artist.
+
+ARTIST DETAILS:
+- Name: ${artistName || 'Not specified'}
+- Guru: ${guruName || 'Not specified'}
+- Gharana: ${gharana || 'Not specified'}
+
+RAW INFORMATION:
+${rawText.substring(0, 1500)}...
+
+Create a professional artist profile with:
+1. A detailed biography (2-3 paragraphs about their background, training, and achievements)
+2. A brief description (1 paragraph summary of their style and contributions)
+3. A concise summary (2-3 sentences for quick overview)
+
+Format as JSON:
+{
+  "biography": "detailed 2-3 paragraph biography",
+  "description": "1 paragraph description",
+  "summary": "2-3 sentence summary"
+}
+
+Focus on their classical music training, artistic contributions, and cultural significance.
+Return only the JSON, no additional text.`;
+  }
+
+  /**
+   * Parse structured AI response
+   */
+  parseStructuredResponse(response) {
+    try {
+      // Clean response - remove markdown code blocks if present
+      const cleanResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      const parsed = JSON.parse(cleanResponse);
+      
+      // Validate required structure
+      if (!parsed.artistName && !parsed.guruName && !parsed.gharana) {
+        throw new Error('Invalid structured response - missing key fields');
+      }
+      
+      return parsed;
+    } catch (error) {
+      console.error('Failed to parse structured AI response:', error);
+      throw new Error('Invalid JSON response from AI');
+    }
+  }
+
+  /**
+   * Parse summary AI response
+   */
+  parseSummaryResponse(response) {
+    try {
+      // Clean response - remove markdown code blocks if present
+      const cleanResponse = response.replace(/```json\n?|\n?```/g, '').trim();
+      const parsed = JSON.parse(cleanResponse);
+      
+      // Validate summary structure
+      if (!parsed.biography && !parsed.description && !parsed.summary) {
+        throw new Error('Invalid summary response - missing content');
+      }
+      
+      return parsed;
+    } catch (error) {
+      console.error('Failed to parse summary AI response:', error);
+      // If JSON parsing fails, treat as plain text
+      return {
+        biography: response,
+        description: response.substring(0, 300) + '...',
+        summary: response.substring(0, 150) + '...'
+      };
+    }
+  }
+
+  /**
+   * Deterministic fallback for structured mode
+   */
+  deterministicFallback(cleanedData) {
+    return {
+      artistName: this.formatName(cleanedData.artistName),
+      guruName: this.formatGuruName(cleanedData.guruName),
+      gharana: this.formatGharana(cleanedData.gharana),
+      biography: this.formatBiography(cleanedData.biography),
+      contactDetails: {
+        phone: this.formatPhone(cleanedData.contactDetails?.phone),
+        email: this.formatEmail(cleanedData.contactDetails?.email),
+        address: this.formatAddress(cleanedData.contactDetails?.address)
+      },
+      _metadata: {
+        provider: 'deterministic',
+        mode: 'structured'
+      }
+    };
+  }
+
+  /**
+   * Basic summary fallback
+   */
+  basicSummaryFallback(cleanedData) {
+    const { artistName, guruName, gharana, biography } = cleanedData;
+    
+    let summaryText = '';
+    if (artistName) summaryText += `${artistName} is a classical music artist`;
+    if (gharana) summaryText += ` from the ${gharana} gharana`;
+    if (guruName) summaryText += ` trained under ${guruName}`;
+    summaryText += '.';
+    
+    return {
+      biography: biography || summaryText,
+      description: summaryText,
+      summary: summaryText,
+      _metadata: {
+        provider: 'basic',
+        mode: 'summary'
+      }
+    };
+  }
+
+  /**
+   * Enhanced field processing (for individual field enhancement)
    */
   async enhanceField(fieldName, fieldValue, context = {}) {
+    if (!fieldValue || typeof fieldValue !== 'string') {
+      return fieldValue;
+    }
+
     try {
-      console.log(`Enhancing field: ${fieldName} with value: ${fieldValue}`);
+      const prompt = this.createFieldPrompt(fieldName, fieldValue, context);
       
-      // Create AI prompt based on field type
-      let prompt = '';
-      let enhanced = fieldValue.trim();
+      const aiResponse = await this.aiProviders.callWithFallback('structured', prompt, {
+        temperature: 0.1,
+        maxTokens: 200
+      });
 
-      switch (fieldName) {
-        case 'artistName':
-          prompt = `Clean and format this artist name properly with correct capitalization and spacing: "${fieldValue}"
-          
-          Rules:
-          - Proper name capitalization
-          - Remove extra spaces
-          - Fix common OCR errors
-          - Return only the cleaned name, nothing else`;
-          break;
-        case 'guruName':
-          prompt = `Clean and format this guru/teacher name properly: "${fieldValue}"
-          
-          Rules:
-          - Proper name capitalization
-          - Add appropriate titles if missing (Pandit, Ustad, etc.)
-          - Remove extra spaces
-          - Return only the cleaned name, nothing else`;
-          break;
-        case 'gharana':
-          prompt = `Clean and format this gharana name: "${fieldValue}"
-          
-          Rules:
-          - Proper capitalization
-          - Remove "gharana" suffix if present
-          - Fix common spelling errors
-          - Return only the gharana name, nothing else`;
-          break;
-        case 'biography':
-        case 'description':
-          prompt = `Improve and format this artist biography/description: "${fieldValue}"
-          
-          Rules:
-          - Fix grammar and punctuation
-          - Improve sentence structure
-          - Remove OCR errors
-          - Make it professional and readable
-          - Keep the same information, just improve the writing
-          - Return only the improved text, nothing else`;
-          break;
-        case 'contactDetails.phone':
-          enhanced = this.formatPhone(fieldValue);
-          return enhanced; // No AI needed for phone formatting
-          break;
-        case 'contactDetails.email':
-          enhanced = this.formatEmail(fieldValue);
-          return enhanced; // No AI needed for email formatting
-          break;
-        case 'contactDetails.address':
-          prompt = `Clean and format this address properly: "${fieldValue}"
-          
-          Rules:
-          - Proper capitalization
-          - Fix common address formatting
-          - Remove extra spaces and line breaks
-          - Make it readable
-          - Return only the cleaned address, nothing else`;
-          break;
-        default:
-          enhanced = this.formatText(fieldValue);
-          return enhanced; // Use basic formatting for unknown fields
-      }
-
-      // Try AI enhancement first
-      if (prompt) {
-        const aiResult = await this.callGeminiAPI(prompt);
-        if (aiResult) {
-          enhanced = aiResult.trim();
-          console.log(`AI enhanced ${fieldName}:`, enhanced);
-        } else {
-          // Fallback to basic formatting
-          enhanced = this.getBasicEnhancement(fieldName, fieldValue);
-          console.log(`Using fallback enhancement for ${fieldName}:`, enhanced);
-        }
-      }
-
-      return enhanced;
+      console.log(`✅ Field '${fieldName}' enhanced using ${aiResponse.provider}`);
+      return aiResponse.result.trim();
     } catch (error) {
-      console.error('Field enhancement error:', error);
-      // Fallback to basic enhancement
-      return this.getBasicEnhancement(fieldName, fieldValue);
+      console.warn(`⚠️ Field enhancement failed for '${fieldName}', using deterministic:`, error.message);
+      return this.getDeterministicFieldEnhancement(fieldName, fieldValue);
     }
   }
 
   /**
-   * Get basic enhancement without AI
+   * Create field-specific enhancement prompt
    */
-  getBasicEnhancement(fieldName, fieldValue) {
+  createFieldPrompt(fieldName, fieldValue, context) {
+    const prompts = {
+      artistName: `Clean and format this artist name: "${fieldValue}"\nRules: Proper capitalization, add titles like "Ustad" or "Pandit" if appropriate.\nReturn only the cleaned name.`,
+      
+      guruName: `Clean and format this guru name: "${fieldValue}"\nRules: Proper capitalization, add "Pandit" or "Ustad" title if missing.\nReturn only the cleaned name.`,
+      
+      gharana: `Clean this gharana name: "${fieldValue}"\nRules: Proper capitalization, remove "gharana" suffix if present.\nReturn only the gharana name.`,
+      
+      biography: `Improve this biography: "${fieldValue}"\nRules: Fix grammar, improve structure, keep same information.\nReturn only the improved text.`,
+      
+      description: `Improve this description: "${fieldValue}"\nRules: Fix grammar, improve structure, keep same information.\nReturn only the improved text.`
+    };
+
+    return prompts[fieldName] || `Clean and format: "${fieldValue}"\nReturn only the cleaned text.`;
+  }
+
+  /**
+   * Get deterministic field enhancement
+   */
+  getDeterministicFieldEnhancement(fieldName, fieldValue) {
     switch (fieldName) {
       case 'artistName':
       case 'guruName':
@@ -200,241 +299,90 @@ class AIEnhancer {
       case 'biography':
       case 'description':
         return this.formatText(fieldValue);
-      case 'contactDetails.phone':
-        return this.formatPhone(fieldValue);
-      case 'contactDetails.email':
-        return this.formatEmail(fieldValue);
-      case 'contactDetails.address':
-        return this.formatAddress(fieldValue);
       default:
-        return this.formatText(fieldValue);
+        return fieldValue;
     }
   }
 
-  /**
-   * Enhance all fields comprehensively
-   */
-  async enhanceAllFields(data, rawText = '') {
-    try {
-      console.log('Enhancing all fields with data:', data);
-      const enhanced = { ...data };
-
-      // Enhance each field
-      if (enhanced.artistName) {
-        enhanced.artistName = await this.enhanceField('artistName', enhanced.artistName, data);
-      }
-      
-      if (enhanced.guruName) {
-        enhanced.guruName = await this.enhanceField('guruName', enhanced.guruName, data);
-      }
-      
-      if (enhanced.gharana) {
-        enhanced.gharana = await this.enhanceField('gharana', enhanced.gharana, data);
-      }
-      
-      if (enhanced.biography) {
-        enhanced.biography = await this.enhanceField('biography', enhanced.biography, data);
-      }
-      
-      if (enhanced.description) {
-        enhanced.description = await this.enhanceField('description', enhanced.description, data);
-      }
-
-      // Enhance contact details
-      if (enhanced.contactDetails) {
-        if (enhanced.contactDetails.phone) {
-          enhanced.contactDetails.phone = await this.enhanceField('contactDetails.phone', enhanced.contactDetails.phone, data);
-        }
-        if (enhanced.contactDetails.email) {
-          enhanced.contactDetails.email = await this.enhanceField('contactDetails.email', enhanced.contactDetails.email, data);
-        }
-        if (enhanced.contactDetails.address) {
-          enhanced.contactDetails.address = await this.enhanceField('contactDetails.address', enhanced.contactDetails.address, data);
-        }
-      }
-
-      console.log('All fields enhanced:', enhanced);
-      return enhanced;
-    } catch (error) {
-      console.error('Comprehensive enhancement error:', error);
-      // Return original data if enhancement fails
-      return data;
-    }
-  }
-
-  /**
-   * Generate AI-powered summary
-   */
-  async generateSummary({ artistName, guruName, gharana, biography }) {
-    try {
-      console.log('Generating summary for:', { artistName, guruName, gharana });
-      
-      const prompt = `Create a professional summary for this classical music artist:
-      
-      Artist Name: ${artistName || 'Not provided'}
-      Guru Name: ${guruName || 'Not provided'}
-      Gharana: ${gharana || 'Not provided'}
-      Biography: ${biography || 'Not provided'}
-      
-      Rules:
-      - Write a professional 2-3 sentence summary
-      - Include their musical tradition and training
-      - Make it suitable for a public artist profile
-      - Focus on their classical music background
-      - Return only the summary text, nothing else`;
-
-      // Try AI generation first
-      const aiSummary = await this.callGeminiAPI(prompt);
-      if (aiSummary) {
-        console.log('AI generated summary:', aiSummary);
-        return aiSummary;
-      }
-
-      // Fallback to basic summary generation
-      console.log('Using fallback summary generation');
-      const parts = [];
-      
-      if (artistName) {
-        parts.push(`${artistName} is a distinguished classical music artist`);
-      }
-      
-      if (gharana) {
-        parts.push(`representing the ${gharana} gharana tradition`);
-      }
-      
-      if (guruName) {
-        parts.push(`trained under the guidance of ${guruName}`);
-      }
-
-      let summary = parts.join(' ');
-      summary += '. Their contributions to classical music continue to inspire audiences and preserve the rich cultural heritage of Indian classical traditions.';
-
-      return summary;
-    } catch (error) {
-      console.error('Summary generation error:', error);
-      // Return basic fallback summary
-      return `${artistName || 'This artist'} is a classical music performer known for their dedication to traditional music.`;
-    }
-  }
-
-  /**
-   * Get comprehensive details about an artist
-   */
-  async getComprehensiveDetails({ artistName, guruName, gharana }) {
-    try {
-      console.log('Getting comprehensive details for:', { artistName, guruName, gharana });
-      
-      const prompt = `Provide comprehensive details about this classical music artist:
-      
-      Artist Name: ${artistName || 'Not provided'}
-      Guru Name: ${guruName || 'Not provided'}
-      Gharana: ${gharana || 'Not provided'}
-      
-      Please provide:
-      1. A detailed biography (2-3 paragraphs)
-      2. A brief description (1 paragraph)
-      3. A professional summary (2-3 sentences)
-      
-      Format your response as JSON:
-      {
-        "biography": "detailed biography here",
-        "description": "brief description here",
-        "summary": "professional summary here"
-      }
-      
-      Focus on classical music traditions, training, and artistic contributions.`;
-
-      // Try AI generation first
-      const aiResult = await this.callGeminiAPI(prompt);
-      if (aiResult) {
-        try {
-          const parsed = JSON.parse(aiResult);
-          console.log('AI generated comprehensive details:', parsed);
-          return parsed;
-        } catch (parseError) {
-          console.warn('Failed to parse AI response as JSON, using fallback');
-        }
-      }
-
-      // Fallback to basic comprehensive details
-      console.log('Using fallback comprehensive details');
-      const comprehensiveData = {
-        biography: `${artistName || 'This artist'} is a renowned classical music artist known for their exceptional skill and dedication to the art form. ${gharana ? `As a representative of the ${gharana} gharana, they carry forward the rich traditions and unique characteristics of this musical school.` : ''} ${guruName ? `Under the tutelage of ${guruName}, they have developed a distinctive style that honors traditional techniques while bringing their own artistic interpretation.` : ''}`,
-        
-        description: `A versatile performer with deep knowledge of classical music theory and practice. ${artistName || 'This artist'} has contributed significantly to the preservation and promotion of classical music traditions.`,
-        
-        summary: `${artistName || 'This artist'} stands as a prominent figure in classical music, ${gharana ? `representing the ${gharana} gharana` : 'known for their traditional approach'} ${guruName ? `and trained by the esteemed ${guruName}` : ''}. Their performances are characterized by technical excellence and emotional depth, making them a respected artist in the classical music community.`
-      };
-
-      return comprehensiveData;
-    } catch (error) {
-      console.error('Comprehensive details error:', error);
-      // Return basic fallback
-      return {
-        biography: `${artistName || 'This artist'} is a classical music performer with dedication to traditional music.`,
-        description: `A classical music artist known for their skill and artistry.`,
-        summary: `${artistName || 'This artist'} is a respected classical music performer.`
-      };
-    }
-  }
-
-  // Helper methods for formatting
+  // Deterministic formatting methods
   formatName(name) {
-    return name
-      .split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-      .join(' ')
-      .replace(/\s+/g, ' ')
-      .trim();
+    if (!name) return null;
+    return name.split(' ')
+      .map(word => {
+        if (word.toLowerCase() === 'ustd') return 'Ustad';
+        if (word.toLowerCase() === 'pt') return 'Pandit';
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  }
+
+  formatGuruName(name) {
+    if (!name) return null;
+    const formatted = this.formatName(name);
+    if (!formatted.match(/^(Ustad|Pandit|Guru)/i)) {
+      return `Pandit ${formatted}`;
+    }
+    return formatted;
   }
 
   formatGharana(gharana) {
-    const formatted = gharana
-      .replace(/gharana/gi, '')
-      .trim();
-    return this.formatName(formatted);
+    if (!gharana) return null;
+    return gharana.replace(/gharana/gi, '').trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   }
 
-  formatText(text) {
-    return text
-      .replace(/\s+/g, ' ')
-      .trim()
+  formatBiography(bio) {
+    if (!bio) return null;
+    return bio.replace(/\s+/g, ' ').trim()
       .replace(/([.!?])\s*([a-z])/g, (match, punct, letter) => punct + ' ' + letter.toUpperCase())
       .replace(/^\w/, c => c.toUpperCase());
   }
 
+  formatText(text) {
+    if (!text) return null;
+    return text.replace(/\s+/g, ' ').trim();
+  }
+
   formatPhone(phone) {
-    // Remove all non-digit characters
+    if (!phone) return null;
     const digits = phone.replace(/\D/g, '');
-    
-    // Format based on length
     if (digits.length === 10) {
-      return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
-    } else if (digits.length === 11 && digits[0] === '1') {
-      return `+1 (${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}`;
+      return `+91 ${digits}`;
     }
-    
-    return phone.trim();
+    return phone;
   }
 
   formatEmail(email) {
+    if (!email) return null;
     return email.toLowerCase().trim();
   }
 
   formatAddress(address) {
-    return address
-      .replace(/\s+/g, ' ')
-      .trim()
-      .split(' ')
-      .map((word, index) => {
-        // Capitalize first letter of each word except common prepositions
-        const prepositions = ['of', 'in', 'at', 'by', 'for', 'with', 'on'];
-        if (index === 0 || !prepositions.includes(word.toLowerCase())) {
-          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
-        }
-        return word.toLowerCase();
-      })
-      .join(' ');
+    if (!address) return null;
+    return address.replace(/\s+/g, ' ').trim();
+  }
+
+  /**
+   * Get AI provider status for debugging
+   */
+  async getProviderStatus() {
+    return this.aiProviders.getProviderStatus();
+  }
+
+  /**
+   * Test AI providers
+   */
+  async testProviders() {
+    const results = {};
+    const providers = ['gemini', 'perplexity'];
+    
+    for (const providerId of providers) {
+      results[providerId] = await this.aiProviders.testProvider(providerId);
+    }
+    
+    return results;
   }
 }
 

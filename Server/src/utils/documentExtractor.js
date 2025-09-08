@@ -452,28 +452,262 @@ class DocumentExtractor {
    * Parse extracted text to identify artist information with enhanced confidence
    */
   parseExtractedData(text, processingMethod = 'Unknown', processingTime = 0, confidence = 'medium', fallbackUsed = false) {
-    const cleanText = text.replace(/\s+/g, ' ').trim();
-    
-    const extractedData = {
-      artistName: this.extractArtistName(cleanText),
-      guruName: this.extractGuruName(cleanText),
-      gharana: this.extractGharana(cleanText),
-      contactDetails: this.extractContactDetails(cleanText),
-      biography: this.extractBiography(cleanText),
-      rawText: cleanText,
-      extractionMetadata: {
+    // Step 1: Raw extraction output
+    const rawData = {
+      rawText: text,
+      metadata: {
         method: processingMethod,
-        processingTime: processingTime,
         confidence: confidence,
+        processingTime: `${processingTime}ms`,
         fallbackUsed: fallbackUsed,
         extractedAt: new Date().toISOString(),
-        textLength: cleanText.length,
-        wordCount: cleanText.split(/\s+/).length,
-        qualityScore: this.calculateQualityScore(cleanText)
+        textLength: text.length,
+        wordCount: text.split(/\s+/).length
       }
     };
 
-    return extractedData;
+    // Step 2: Deterministic cleanup pipeline
+    const cleanedData = this.deterministicCleanup(text);
+    
+    return {
+      ...rawData,
+      cleanedExtractedData: cleanedData,
+      extractionMetadata: rawData.metadata
+    };
+  }
+
+  /**
+   * Step 2: Deterministic Cleanup Pipeline
+   */
+  deterministicCleanup(rawText) {
+    // Sanitize text
+    const cleanText = this.cleanText(rawText);
+    
+    // Initialize structured JSON skeleton
+    const structuredData = {
+      artistName: null,
+      guruName: null,
+      gharana: null,
+      biography: null,
+      contactDetails: {
+        phone: null,
+        email: null,
+        address: null
+      }
+    };
+
+    // Section splitting & field mapping
+    structuredData.artistName = this.extractArtistNameDeterministic(cleanText);
+    structuredData.guruName = this.extractGuruNameDeterministic(cleanText);
+    structuredData.gharana = this.extractGharanaDeterministic(cleanText);
+    structuredData.biography = this.extractBiographyDeterministic(cleanText);
+    structuredData.contactDetails = this.extractContactDetailsDeterministic(cleanText);
+
+    return structuredData;
+  }
+
+  /**
+   * Sanitize text - remove control chars, normalize unicode, collapse spaces
+   */
+  cleanText(str) {
+    if (!str || typeof str !== 'string') return '';
+    
+    return str
+      .replace(/[\x00-\x1F\x7F-\x9F]/g, '') // remove control chars
+      .replace(/\s+/g, ' ')                 // collapse spaces
+      .normalize('NFC')                     // unicode normalize
+      .replace(/\{\\rtf[^}]*\}/g, '')       // remove RTF artifacts
+      .replace(/\{[^}]*\}/g, '')            // remove other bracketed artifacts
+      .trim();
+  }
+
+  /**
+   * Deterministic artist name extraction
+   */
+  extractArtistNameDeterministic(text) {
+    const patterns = [
+      /(?:artist\s*name|name\s*of\s*artist|performer\s*name)\s*:?\s*([^\n\r,;]+)/i,
+      /^([A-Z][a-z]+\s+[A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/m,
+      /(?:performer|artist|musician)\s*:?\s*([^\n\r,;]+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1] && match[1].trim().length > 2) {
+        return this.normalizeName(match[1].trim());
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Deterministic guru name extraction
+   */
+  extractGuruNameDeterministic(text) {
+    const patterns = [
+      /(?:guru|teacher|mentor|master)\s*:?\s*([^\n\r,;]+)/i,
+      /(?:under|trained\s+by|student\s+of|disciple\s+of)\s+(?:guru\s+)?([^\n\r,;]+)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1] && match[1].trim().length > 2) {
+        return this.normalizeGuruName(match[1].trim());
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Deterministic gharana extraction
+   */
+  extractGharanaDeterministic(text) {
+    const patterns = [
+      /(?:gharana|school|tradition|style)\s*:?\s*([^\n\r,;]+)/i,
+      /([A-Z][a-z]+)\s+gharana/i,
+      /(?:belongs\s+to|from|represents)\s+([A-Z][a-z]+\s+gharana)/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return this.normalizeGharana(match[1].trim());
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Deterministic biography extraction
+   */
+  extractBiographyDeterministic(text) {
+    const patterns = [
+      /(?:biography|bio|about|description|profile|background)\s*:?\s*([^\n\r]{100,})/i,
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+
+    // Find first substantial paragraph
+    const paragraphs = text.split(/\n\s*\n/);
+    const substantialParagraph = paragraphs.find(p => 
+      p.length > 150 && 
+      /[.!?]/.test(p) && 
+      !/^[\d\s\-+()]+$/.test(p)
+    );
+    
+    return substantialParagraph ? substantialParagraph.trim() : null;
+  }
+
+  /**
+   * Deterministic contact details extraction with regex
+   */
+  extractContactDetailsDeterministic(text) {
+    const contactDetails = {};
+
+    // Phone regex: /\+?\d[\d\s-]{7,}/
+    const phonePattern = /\+?\d[\d\s-]{7,}/g;
+    const phoneMatches = text.match(phonePattern);
+    if (phoneMatches) {
+      const validPhone = phoneMatches.find(phone => {
+        const digits = phone.replace(/\D/g, '');
+        return digits.length >= 10;
+      });
+      if (validPhone) {
+        contactDetails.phone = this.normalizePhone(validPhone);
+      }
+    }
+
+    // Email regex: /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/
+    const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/i;
+    const emailMatch = text.match(emailPattern);
+    if (emailMatch) {
+      contactDetails.email = emailMatch[0].toLowerCase().trim();
+    }
+
+    // Address extraction
+    const addressPatterns = [
+      /(?:address|location|residence)\s*:?\s*([^\n\r]+)/i,
+    ];
+
+    for (const pattern of addressPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1] && match[1].trim().length > 10) {
+        contactDetails.address = match[1].trim();
+        break;
+      }
+    }
+
+    return Object.keys(contactDetails).length > 0 ? contactDetails : {
+      phone: null,
+      email: null,
+      address: null
+    };
+  }
+
+  /**
+   * Normalize name: "ustd zakir" → "Ustad Zakir"
+   */
+  normalizeName(name) {
+    return name
+      .split(' ')
+      .map(word => {
+        // Handle common abbreviations
+        if (word.toLowerCase() === 'ustd' || word.toLowerCase() === 'ustad') return 'Ustad';
+        if (word.toLowerCase() === 'pt' || word.toLowerCase() === 'pandit') return 'Pandit';
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  }
+
+  /**
+   * Normalize guru name with titles
+   */
+  normalizeGuruName(name) {
+    const normalized = this.normalizeName(name);
+    
+    // Add appropriate title if missing
+    if (!normalized.match(/^(Ustad|Pandit|Guru|Sri|Shri)/i)) {
+      // Simple heuristic: if name sounds classical, add appropriate title
+      if (normalized.match(/^[A-Z][a-z]+\s+[A-Z][a-z]+/)) {
+        return `Pandit ${normalized}`;
+      }
+    }
+    
+    return normalized;
+  }
+
+  /**
+   * Normalize gharana name
+   */
+  normalizeGharana(gharana) {
+    return gharana
+      .replace(/gharana/gi, '')
+      .trim()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  }
+
+  /**
+   * Normalize phone: "+91-999 888 7777" → "+91 9998887777"
+   */
+  normalizePhone(phone) {
+    const digits = phone.replace(/\D/g, '');
+    
+    if (digits.length === 10) {
+      return `+91 ${digits}`;
+    } else if (digits.length === 12 && digits.startsWith('91')) {
+      return `+91 ${digits.slice(2)}`;
+    } else if (digits.length === 11 && digits.startsWith('1')) {
+      return `+1 ${digits.slice(1)}`;
+    }
+    
+    return phone.trim();
   }
 
   /**

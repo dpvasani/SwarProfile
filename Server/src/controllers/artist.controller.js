@@ -45,10 +45,9 @@ const uploadAndExtractDocument = asyncHandler(async (req, res) => {
       // Extract data from document
       const extractedData = await documentExtractor.extractFromFile(documentPath, fileType);
 
-      console.log(`📊 Extraction completed with confidence: ${extractedData.extractionMetadata?.confidence}`);
-      console.log(`📈 Quality score: ${extractedData.extractionMetadata?.qualityScore}/100`);
-      console.log(`🔧 Method used: ${extractedData.extractionMetadata?.method}`);
-      console.log(`⏱️ Processing time: ${extractedData.extractionMetadata?.processingTime}ms`);
+      console.log(`📊 Extraction completed with confidence: ${extractedData.metadata?.confidence}`);
+      console.log(`🔧 Method used: ${extractedData.metadata?.method}`);
+      console.log(`⏱️ Processing time: ${extractedData.metadata?.processingTime}`);
 
       // Upload document to Cloudinary
       const documentUpload = await uploadOnCloudinary(documentPath);
@@ -56,12 +55,13 @@ const uploadAndExtractDocument = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Failed to upload document to cloud storage");
       }
 
-      // Update artist with extracted data
-      artist.artistName = extractedData.artistName;
-      artist.guruName = extractedData.guruName;
-      artist.gharana = extractedData.gharana;
-      artist.contactDetails = extractedData.contactDetails;
-      artist.biography = extractedData.biography;
+      // Update artist with cleaned extracted data
+      const cleanedData = extractedData.cleanedExtractedData;
+      artist.artistName = cleanedData.artistName;
+      artist.guruName = cleanedData.guruName;
+      artist.gharana = cleanedData.gharana;
+      artist.contactDetails = cleanedData.contactDetails;
+      artist.biography = cleanedData.biography;
       artist.rawExtractedData = extractedData.rawText;
       artist.originalDocument.url = documentUpload.url;
       artist.extractionStatus = 'completed';
@@ -73,7 +73,11 @@ const uploadAndExtractDocument = asyncHandler(async (req, res) => {
           201,
           {
             artist: artist.getAdminView(),
-            extractedData,
+            extractedData: {
+              ...cleanedData,
+              rawText: extractedData.rawText,
+              metadata: extractedData.metadata
+            },
           },
           "Document uploaded and processed successfully"
         )
@@ -353,13 +357,13 @@ const getExtractionStats = asyncHandler(async (req, res) => {
 });
 
 /**
- * Enhance single field with AI
+ * Enhance single field with AI (optimized workflow)
  * Admin only
  */
 const enhanceField = asyncHandler(async (req, res) => {
   const { field, value, context } = req.body;
 
-  console.log('Enhance field request:', { field, value: value?.substring(0, 50) + '...' });
+  console.log('🔧 Enhance field request:', { field, value: value?.substring(0, 50) + '...' });
 
   if (!field || !value) {
     throw new ApiError(400, "Field name and value are required");
@@ -367,100 +371,104 @@ const enhanceField = asyncHandler(async (req, res) => {
 
   try {
     const enhancedValue = await aiEnhancer.enhanceField(field, value, context);
-    console.log('Field enhanced successfully:', field);
+    console.log('✅ Field enhanced successfully:', field);
     
     return res.status(200).json(
       new ApiResponse(200, { enhancedValue }, `Field '${field}' enhanced successfully`)
     );
   } catch (error) {
-    console.error('Field enhancement error:', error);
+    console.error('❌ Field enhancement error:', error);
     throw new ApiError(500, `Field enhancement failed for '${field}': ${error.message}`);
   }
 });
 
 /**
- * Enhance all fields with AI
+ * Enhance all fields with AI (structured mode)
  * Admin only
  */
 const enhanceAllFields = asyncHandler(async (req, res) => {
   const { data, rawText } = req.body;
 
-  console.log('Enhance all fields request for artist:', data?.artistName);
+  console.log('🔧 Enhance all fields request for artist:', data?.artistName);
 
   if (!data) {
     throw new ApiError(400, "Data is required for enhancement");
   }
 
   try {
-    const enhancedFormData = await aiEnhancer.enhanceAllFields(data, rawText);
-    console.log('All fields enhanced successfully');
+    const enhancedFormData = await aiEnhancer.enhanceStructured(data, rawText);
+    console.log('✅ All fields enhanced successfully');
     
     return res.status(200).json(
       new ApiResponse(200, { enhancedFormData }, "All fields enhanced successfully")
     );
   } catch (error) {
-    console.error('All fields enhancement error:', error);
+    console.error('❌ All fields enhancement error:', error);
     throw new ApiError(500, `Comprehensive enhancement failed: ${error.message}`);
   }
 });
 
 /**
- * Generate AI summary
+ * Generate AI summary (summary mode)
  * Admin only
  */
 const generateSummary = asyncHandler(async (req, res) => {
-  const { artistName, guruName, gharana, biography } = req.body;
+  const { artistName, guruName, gharana, biography, rawText } = req.body;
 
-  console.log('Generate summary request for:', artistName);
+  console.log('📝 Generate summary request for:', artistName);
 
   if (!artistName) {
     throw new ApiError(400, "Artist name is required for summary generation");
   }
 
   try {
-    const summaryText = await aiEnhancer.generateSummary({
+    const cleanedData = {
       artistName,
       guruName,
       gharana,
       biography
-    });
-    console.log('Summary generated successfully');
+    };
+    
+    const summaryData = await aiEnhancer.enhanceSummary(cleanedData, rawText || '');
+    console.log('✅ Summary generated successfully');
     
     return res.status(200).json(
-      new ApiResponse(200, { summary: summaryText }, "Summary generated successfully")
+      new ApiResponse(200, summaryData, "Summary generated successfully")
     );
   } catch (error) {
-    console.error('Summary generation error:', error);
+    console.error('❌ Summary generation error:', error);
     throw new ApiError(500, `Summary generation failed: ${error.message}`);
   }
 });
 
 /**
- * Get comprehensive AI details
+ * Get comprehensive AI details (summary mode)
  * Admin only
  */
 const getComprehensiveDetails = asyncHandler(async (req, res) => {
-  const { artistName, guruName, gharana } = req.body;
+  const { artistName, guruName, gharana, rawText } = req.body;
 
-  console.log('Get comprehensive details request for:', artistName);
+  console.log('🔍 Get comprehensive details request for:', artistName);
 
   if (!artistName) {
     throw new ApiError(400, "Artist name is required for comprehensive details");
   }
 
   try {
-    const details = await aiEnhancer.getComprehensiveDetails({
+    const cleanedData = {
       artistName,
       guruName,
       gharana
-    });
-    console.log('Comprehensive details retrieved successfully');
+    };
+    
+    const details = await aiEnhancer.enhanceSummary(cleanedData, rawText || '');
+    console.log('✅ Comprehensive details retrieved successfully');
     
     return res.status(200).json(
       new ApiResponse(200, details, "Comprehensive details retrieved successfully")
     );
   } catch (error) {
-    console.error('Comprehensive details error:', error);
+    console.error('❌ Comprehensive details error:', error);
     throw new ApiError(500, `Comprehensive details retrieval failed: ${error.message}`);
   }
 });

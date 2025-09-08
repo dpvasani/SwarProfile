@@ -265,11 +265,12 @@ const UploadDocument = () => {
         artistName: formData.artistName,
         guruName: formData.guruName,
         gharana: formData.gharana,
-        biography: formData.biography
+        biography: formData.biography,
+        rawText: result?.extractedData?.rawText
       });
 
-      const summary = response.data.data.summary;
-      setSummary(summary);
+      const summaryData = response.data.data;
+      setSummary(summaryData.summary || summaryData.description || summaryData.biography);
     } catch (error) {
       console.error('Summary generation failed:', error);
       setError(`Failed to generate summary: ${error.response?.data?.message || error.message}`);
@@ -289,7 +290,8 @@ const UploadDocument = () => {
       const response = await axios.post('/artists/admin/comprehensive-details', {
         artistName: formData.artistName,
         guruName: formData.guruName,
-        gharana: formData.gharana
+        gharana: formData.gharana,
+        rawText: result?.extractedData?.rawText
       });
 
       const comprehensiveData = response.data.data;
