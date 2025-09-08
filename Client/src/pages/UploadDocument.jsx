@@ -212,11 +212,12 @@ const UploadDocument = () => {
     setEnhancing(true);
     try {
       // Mock AI enhancement - replace with actual Gemini API call
-      const response = await fetch('/api/enhance-field', {
+      const response = await fetch('http://localhost:4000/api/v1/artists/admin/enhance-field', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           field: fieldName,
           value: fieldValue,
@@ -265,11 +266,12 @@ const UploadDocument = () => {
     setEnhancing(true);
     try {
       // Mock comprehensive AI enhancement
-      const response = await fetch('/api/enhance-all-fields', {
+      const response = await fetch('http://localhost:4000/api/v1/artists/admin/enhance-all', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           data: formData,
           rawText: result?.extractedData?.rawText
@@ -320,11 +322,12 @@ const UploadDocument = () => {
     setGeneratingSummary(true);
     try {
       // Mock AI summary generation - replace with actual Gemini API call
-      const response = await fetch('/api/generate-summary', {
+      const response = await fetch('http://localhost:4000/api/v1/artists/admin/generate-summary', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           artistName: formData.artistName,
           guruName: formData.guruName,
@@ -360,11 +363,12 @@ const UploadDocument = () => {
     setEnhancing(true);
     try {
       // Mock comprehensive AI research - replace with actual API calls
-      const response = await fetch('/api/comprehensive-details', {
+      const response = await fetch('http://localhost:4000/api/v1/artists/admin/comprehensive-details', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify({
           artistName: formData.artistName,
           guruName: formData.guruName,
