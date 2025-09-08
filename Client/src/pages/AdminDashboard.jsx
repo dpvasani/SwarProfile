@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   DocumentTextIcon,
@@ -14,6 +14,7 @@ import {
 } from '@heroicons/react/24/outline';
 
 const AdminDashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({});
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -210,23 +211,23 @@ const AdminDashboard = () => {
             <div className="text-center py-8 text-red-600">{error}</div>
           ) : artists.length > 0 ? (
             <>
-              <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-secondary-200">
+              <div className="overflow-hidden">
+                <table className="w-full divide-y divide-secondary-200">
                   <thead className="bg-secondary-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/4">
                         Artist
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/4">
                         Guru/Gharana
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/6">
                         Status
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/6">
                         Created
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/6">
                         Actions
                       </th>
                     </tr>
@@ -234,7 +235,7 @@ const AdminDashboard = () => {
                   <tbody className="bg-white divide-y divide-secondary-200">
                     {artists.map((artist) => (
                       <tr key={artist._id} className="hover:bg-secondary-50">
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4">
                           <div className="flex items-center">
                             <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
                               {artist.profilePhoto ? (
@@ -250,26 +251,26 @@ const AdminDashboard = () => {
                               )}
                             </div>
                             <div className="ml-4">
-                              <div className="text-sm font-medium text-secondary-900">
+                              <div className="text-sm font-medium text-secondary-900 truncate max-w-32">
                                 {artist.artistName || 'Unknown Artist'}
                               </div>
-                              <div className="text-sm text-secondary-500">
+                              <div className="text-sm text-secondary-500 truncate max-w-32">
                                 {artist.createdBy?.fullName}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4">
                           <div className="text-sm text-secondary-900">
                             {artist.guruName && (
-                              <div>Guru: {artist.guruName}</div>
+                              <div className="truncate">Guru: {artist.guruName}</div>
                             )}
                             {artist.gharana && (
-                              <div>Gharana: {artist.gharana}</div>
+                              <div className="truncate">Gharana: {artist.gharana}</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
+                        <td className="px-4 py-4">
                           <div className="flex items-center">
                             {getStatusIcon(artist.extractionStatus)}
                             <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(artist.extractionStatus)}`}>
@@ -280,23 +281,25 @@ const AdminDashboard = () => {
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
+                        <td className="px-4 py-4 text-sm text-secondary-500">
                           {new Date(artist.createdAt).toLocaleDateString()}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <td className="px-4 py-4 text-sm font-medium">
                           <div className="flex space-x-2">
                             <Link
                               to={`/artists/${artist._id}`}
                               className="text-primary-600 hover:text-primary-900"
+                              title="View Artist"
                             >
                               <EyeIcon className="w-4 h-4" />
                             </Link>
-                            <Link
-                              to={`/admin/edit/${artist._id}`}
+                            <button
+                              onClick={() => navigate(`/admin/edit/${artist._id}`)}
                               className="text-secondary-600 hover:text-secondary-900"
+                              title="Edit Artist"
                             >
                               <PencilIcon className="w-4 h-4" />
-                            </Link>
+                            </button>
                             {!artist.isVerified && artist.extractionStatus === 'completed' && (
                               <button
                                 onClick={() => handleVerifyArtist(artist._id)}
@@ -309,6 +312,7 @@ const AdminDashboard = () => {
                             <button
                               onClick={() => handleDeleteArtist(artist._id)}
                               className="text-red-600 hover:text-red-900"
+                              title="Delete Artist"
                             >
                               <TrashIcon className="w-4 h-4" />
                             </button>

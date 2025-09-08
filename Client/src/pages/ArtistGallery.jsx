@@ -18,7 +18,16 @@ const ArtistGallery = () => {
 
   useEffect(() => {
     fetchArtists();
-  }, [currentPage, searchTerm]);
+  }, [currentPage]);
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setCurrentPage(1);
+      fetchArtists();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm]);
 
   const fetchArtists = async () => {
     try {
@@ -27,7 +36,7 @@ const ArtistGallery = () => {
         params: {
           page: currentPage,
           limit: 12,
-          search: searchTerm || undefined,
+          search: searchTerm.trim() || undefined,
         },
       });
       
@@ -43,8 +52,7 @@ const ArtistGallery = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1);
-    fetchArtists();
+    // Search is now handled by useEffect above
   };
 
   const handlePageChange = (page) => {
@@ -89,12 +97,15 @@ const ArtistGallery = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
               <MagnifyingGlassIcon className="absolute left-3 top-3.5 h-5 w-5 text-secondary-400" />
-              <button
-                type="submit"
-                className="absolute right-2 top-2 btn-primary py-2 px-4 text-sm"
-              >
-                Search
-              </button>
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-3 top-3.5 text-secondary-400 hover:text-secondary-600"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </form>
         </div>

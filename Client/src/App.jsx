@@ -12,6 +12,7 @@ import ArtistGallery from './pages/ArtistGallery';
 import ArtistDetail from './pages/ArtistDetail';
 import AdminDashboard from './pages/AdminDashboard';
 import UploadDocument from './pages/UploadDocument';
+import EditArtist from './pages/EditArtist';
 
 function App() {
   return (
@@ -41,6 +42,14 @@ function App() {
               element={
                 <ProtectedRoute adminOnly>
                   <UploadDocument />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/edit/:id" 
+              element={
+                <ProtectedRoute adminOnly>
+                  <EditArtist />
                 </ProtectedRoute>
               } 
             />
