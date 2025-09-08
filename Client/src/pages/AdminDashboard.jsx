@@ -23,21 +23,17 @@ const AdminDashboard = () => {
   const [pagination, setPagination] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
 
-  useEffect(() => {
-    fetchStats();
-    fetchArtists();
-  }, [currentPage, statusFilter]);
 
-  const fetchStats = async () => {
+  const fetchStats = React.useCallback(async () => {
     try {
       const response = await axios.get('/artists/admin/stats');
       setStats(response.data.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, []);
 
-  const fetchArtists = async () => {
+  const fetchArtists = React.useCallback(async () => {
     try {
       setLoading(true);
       const response = await axios.get('/artists/admin/all', {
@@ -60,7 +56,12 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, statusFilter]);
+
+  useEffect(() => {
+    fetchStats();
+    fetchArtists();
+  }, [currentPage, statusFilter, fetchArtists, fetchStats]);
 
   const handleVerifyArtist = async (artistId) => {
     try {
@@ -212,22 +213,22 @@ const AdminDashboard = () => {
           ) : artists.length > 0 ? (
             <>
               <div className="overflow-hidden">
-                <table className="w-full divide-y divide-secondary-200">
+        <table className="w-full table-fixed divide-y divide-secondary-200">
                   <thead className="bg-secondary-50">
                     <tr>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/3">
                         Artist
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/3">
                         Guru/Gharana
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-36">
                         Status
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-28">
                         Created
                       </th>
-                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
+          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-32">
                         Actions
                       </th>
                     </tr>

@@ -204,7 +204,7 @@ const UploadDocument = () => {
   };
 
   const enhanceFieldWithAI = async (fieldName, fieldValue) => {
-    if (!fieldValue.trim()) return;
+  if (!(fieldValue || '').trim()) return;
 
     setEnhancing(true);
     try {
@@ -382,7 +382,7 @@ const UploadDocument = () => {
             <button
               type="button"
               onClick={() => enhanceFieldWithAI(fieldName, value)}
-              disabled={enhancing || !value.trim()}
+              disabled={enhancing || !(value || '').trim()}
               className="text-xs text-primary-600 hover:text-primary-800 disabled:opacity-50 flex items-center"
               title="Enhance with AI"
             >
