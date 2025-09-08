@@ -1,4 +1,6 @@
 import { ApiError } from './ApiError.js';
+import dotenv from 'dotenv';
+dotenv.config();
 
 class AIEnhancer {
   constructor() {

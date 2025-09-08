@@ -9,6 +9,10 @@ import {
   verifyArtist,
   deleteArtist,
   getExtractionStats,
+  enhanceField,
+  enhanceAllFields,
+  generateSummary,
+  getComprehensiveDetails
 } from "../controllers/artist.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
