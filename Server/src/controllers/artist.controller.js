@@ -4,10 +4,12 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Artist } from "../models/artist.model.js";
 import { uploadOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
 import DocumentExtractor from "../utils/documentExtractor.js";
+import AIEnhancer from "../utils/aiEnhancer.js";
 import fs from "fs";
 import path from "path";
 
 const documentExtractor = new DocumentExtractor();
+const aiEnhancer = new AIEnhancer();
 
 /**
  * Upload and extract artist information from document
@@ -350,6 +352,103 @@ const getExtractionStats = asyncHandler(async (req, res) => {
   );
 });
 
+/**
+ * Enhance single field with AI
+ * Admin only
+ */
+const enhanceField = asyncHandler(async (req, res) => {
+  const { field, value, context } = req.body;
+
+  if (!field || !value) {
+    throw new ApiError(400, "Field name and value are required");
+  }
+
+  try {
+    const enhancedValue = await aiEnhancer.enhanceField(field, value, context);
+    
+    return res.status(200).json(
+      new ApiResponse(200, { enhancedValue }, "Field enhanced successfully")
+    );
+  } catch (error) {
+    throw new ApiError(500, `Field enhancement failed: ${error.message}`);
+  }
+});
+
+/**
+ * Enhance all fields with AI
+ * Admin only
+ */
+const enhanceAllFields = asyncHandler(async (req, res) => {
+  const { data, rawText } = req.body;
+
+  if (!data) {
+    throw new ApiError(400, "Data is required for enhancement");
+  }
+
+  try {
+    const enhancedFormData = await aiEnhancer.enhanceAllFields(data, rawText);
+    
+    return res.status(200).json(
+      new ApiResponse(200, { enhancedFormData }, "All fields enhanced successfully")
+    );
+  } catch (error) {
+    throw new ApiError(500, `Comprehensive enhancement failed: ${error.message}`);
+  }
+});
+
+/**
+ * Generate AI summary
+ * Admin only
+ */
+const generateSummary = asyncHandler(async (req, res) => {
+  const { artistName, guruName, gharana, biography } = req.body;
+
+  if (!artistName) {
+    throw new ApiError(400, "Artist name is required for summary generation");
+  }
+
+  try {
+    const summary = await aiEnhancer.generateSummary({
+      artistName,
+      guruName,
+      gharana,
+      biography
+    });
+    
+    return res.status(200).json(
+      new ApiResponse(200, { summary }, "Summary generated successfully")
+    );
+  } catch (error) {
+    throw new ApiError(500, `Summary generation failed: ${error.message}`);
+  }
+});
+
+/**
+ * Get comprehensive AI details
+ * Admin only
+ */
+const getComprehensiveDetails = asyncHandler(async (req, res) => {
+  const { artistName, guruName, gharana } = req.body;
+
+  if (!artistName) {
+    throw new ApiError(400, "Artist name is required for comprehensive details");
+  }
+
+  try {
+    const comprehensiveData = await aiEnhancer.getComprehensiveDetails({
+      artistName,
+      guruName,
+      gharana
+    });
+    
+    return res.status(200).json(
+      new ApiResponse(200, comprehensiveData, "Comprehensive details retrieved successfully")
+    );
+  } catch (error) {
+    throw new ApiError(500, `Comprehensive details retrieval failed: ${error.message}`);
+  }
+});
+
 export {
   uploadAndExtractDocument,
   getAllArtistsAdmin,
@@ -360,4 +459,8 @@ export {
   verifyArtist,
   deleteArtist,
   getExtractionStats,
+  enhanceField,
+  enhanceAllFields,
+  generateSummary,
+  getComprehensiveDetails,
 };
