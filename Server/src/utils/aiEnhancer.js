@@ -13,36 +13,83 @@ class AIEnhancer {
    * Make API call to Gemini
    */
   async callGeminiAPI(prompt) {
+    // If no Gemini key, skip external AI calls
     if (!this.geminiApiKey) {
-      console.warn('Gemini API key not found, using fallback enhancement');
+      console.warn('No Gemini API key found, using fallback enhancement');
       return null;
     }
 
-    try {
-      const response = await fetch(`${this.geminiBaseURL}?key=${this.geminiApiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: prompt
-            }]
-          }]
-        })
-      });
+    // Try multiple possible Gemini/Generative Language endpoints to handle account differences
+    const endpoints = [
+      // Common REST endpoints
+      `https://generativelanguage.googleapis.com/v1/models/text-bison-001:generate?key=${this.geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta2/models/text-bison-001:generate?key=${this.geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${this.geminiApiKey}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.3:generate?key=${this.geminiApiKey}`,
+      // older shape
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1:generate?key=${this.geminiApiKey}`
+    ];
 
-      if (!response.ok) {
-        throw new Error(`Gemini API error: ${response.status} ${response.statusText}`);
+    for (const url of endpoints) {
+      try {
+        this.lastTriedGeminiUrl = url;
+        // Choose request body shape based on endpoint
+        let body;
+        if (url.includes('text-bison')) {
+          body = JSON.stringify({ prompt: { text: prompt }, temperature: 0.2, maxOutputTokens: 512 });
+        } else if (url.includes('generateContent')) {
+          body = JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] });
+        } else {
+          // generic/gemini models
+          body = JSON.stringify({ prompt: { text: prompt }, temperature: 0.2, maxOutputTokens: 512 });
+        }
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body
+        });
+
+        const raw = await res.text();
+        if (!res.ok) {
+          console.warn(`Gemini endpoint returned non-OK: ${res.status} ${res.statusText} - tried ${url} - body: ${raw}`);
+          // try next endpoint
+          continue;
+        }
+
+        // Parse and extract candidate text across response shapes
+        let data;
+        try {
+          data = JSON.parse(raw);
+        } catch (parseErr) {
+          // If not JSON, return raw text
+          return raw || null;
+        }
+
+        // possible fields where content may appear
+        const candidateText =
+          data.candidates?.[0]?.content?.parts?.[0]?.text ||
+          data.candidates?.[0]?.content ||
+          data.output?.[0]?.content ||
+          data.reply?.content ||
+          data.result?.content ||
+          data.output?.text ||
+          data.choices?.[0]?.message?.content ||
+          data.choices?.[0]?.text ||
+          null;
+
+        if (candidateText) return typeof candidateText === 'string' ? candidateText : JSON.stringify(candidateText);
+
+        // fallback: stringify full response
+        return JSON.stringify(data);
+      } catch (error) {
+        console.error(`Gemini attempt failed for ${url}:`, error);
+        // try next endpoint
       }
-
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-    } catch (error) {
-      console.error('Gemini API call failed:', error);
-      return null;
     }
+
+    console.error('All Gemini endpoints failed or returned no usable content');
+    return null;
   }
 
   /**
