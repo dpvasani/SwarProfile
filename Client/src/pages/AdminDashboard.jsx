@@ -215,19 +215,19 @@ const AdminDashboard = () => {
                 <table className="w-full divide-y divide-secondary-200">
                   <thead className="bg-secondary-50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/4">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                         Artist
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/4">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                         Guru/Gharana
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/6">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/6">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                         Created
                       </th>
-                      <th className="px-4 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/6">
+                      <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider">
                         Actions
                       </th>
                     </tr>
@@ -235,67 +235,83 @@ const AdminDashboard = () => {
                   <tbody className="bg-white divide-y divide-secondary-200">
                     {artists.map((artist) => (
                       <tr key={artist._id} className="hover:bg-secondary-50">
-                        <td className="px-4 py-4">
+                        <td className="px-3 py-3">
                           <div className="flex items-center">
-                            <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
                               {artist.profilePhoto ? (
                                 <img
                                   src={artist.profilePhoto}
                                   alt={artist.artistName}
-                                  className="w-10 h-10 rounded-full object-cover"
+                                  className="w-8 h-8 rounded-full object-cover"
                                 />
                               ) : (
-                                <span className="text-primary-600 font-medium text-sm">
+                                <span className="text-primary-600 font-medium text-xs">
                                   {artist.artistName?.charAt(0) || 'A'}
                                 </span>
                               )}
                             </div>
-                            <div className="ml-4">
-                              <div className="text-sm font-medium text-secondary-900 truncate max-w-32">
+                            <div className="ml-2 min-w-0 flex-1">
+                              <div className="text-sm font-medium text-secondary-900 truncate">
                                 {artist.artistName || 'Unknown Artist'}
                               </div>
-                              <div className="text-sm text-secondary-500 truncate max-w-32">
+                              <div className="text-xs text-secondary-500 truncate">
                                 {artist.createdBy?.fullName}
                               </div>
                             </div>
                           </div>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="text-sm text-secondary-900">
+                        <td className="px-3 py-3">
+                          <div className="text-sm text-secondary-900 space-y-1">
                             {artist.guruName && (
-                              <div className="truncate">Guru: {artist.guruName}</div>
+                              <div className="text-xs truncate">
+                                <span className="font-medium">Guru:</span> {artist.guruName.length > 15 ? artist.guruName.substring(0, 15) + '...' : artist.guruName}
+                              </div>
                             )}
                             {artist.gharana && (
-                              <div className="truncate">Gharana: {artist.gharana}</div>
+                              <div className="text-xs truncate">
+                                <span className="font-medium">Gharana:</span> {artist.gharana.length > 12 ? artist.gharana.substring(0, 12) + '...' : artist.gharana}
+                              </div>
+                            )}
+                            {!artist.guruName && !artist.gharana && (
+                              <div className="text-xs text-secondary-400">No details</div>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-4">
-                          <div className="flex items-center">
+                        <td className="px-3 py-3">
+                          <div className="flex flex-col items-start space-y-1">
                             {getStatusIcon(artist.extractionStatus)}
-                            <span className={`ml-2 px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(artist.extractionStatus)}`}>
+                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(artist.extractionStatus)}`}>
                               {artist.extractionStatus}
                             </span>
                             {artist.isVerified && (
-                              <CheckCircleIcon className="w-4 h-4 text-green-500 ml-2" />
+                              <div className="flex items-center">
+                                <CheckCircleIcon className="w-3 h-3 text-green-500 mr-1" />
+                                <span className="text-xs text-green-600">Verified</span>
+                              </div>
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-4 text-sm text-secondary-500">
-                          {new Date(artist.createdAt).toLocaleDateString()}
+                        <td className="px-3 py-3">
+                          <div className="text-xs text-secondary-500">
+                            {new Date(artist.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: '2-digit'
+                            })}
+                          </div>
                         </td>
-                        <td className="px-4 py-4 text-sm font-medium">
-                          <div className="flex space-x-2">
+                        <td className="px-3 py-3">
+                          <div className="flex space-x-1">
                             <Link
                               to={`/artists/${artist._id}`}
-                              className="text-primary-600 hover:text-primary-900"
+                              className="text-primary-600 hover:text-primary-900 p-1"
                               title="View Artist"
                             >
                               <EyeIcon className="w-4 h-4" />
                             </Link>
                             <button
                               onClick={() => navigate(`/admin/edit/${artist._id}`)}
-                              className="text-secondary-600 hover:text-secondary-900"
+                              className="text-secondary-600 hover:text-secondary-900 p-1"
                               title="Edit Artist"
                             >
                               <PencilIcon className="w-4 h-4" />
@@ -303,7 +319,7 @@ const AdminDashboard = () => {
                             {!artist.isVerified && artist.extractionStatus === 'completed' && (
                               <button
                                 onClick={() => handleVerifyArtist(artist._id)}
-                                className="text-green-600 hover:text-green-900"
+                                className="text-green-600 hover:text-green-900 p-1"
                                 title="Verify Artist"
                               >
                                 <CheckCircleIcon className="w-4 h-4" />
@@ -311,7 +327,7 @@ const AdminDashboard = () => {
                             )}
                             <button
                               onClick={() => handleDeleteArtist(artist._id)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-900 p-1"
                               title="Delete Artist"
                             >
                               <TrashIcon className="w-4 h-4" />
