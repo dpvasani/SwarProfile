@@ -23,7 +23,6 @@ const UploadDocument = () => {
   const [uploading, setUploading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [editMode, setEditMode] = useState(false);
   const [saving, setSaving] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -65,7 +64,6 @@ const UploadDocument = () => {
     setFile(selectedFile);
     setError('');
     setResult(null);
-    setEditMode(false);
     setSummary('');
     setHistory([]);
     setHistoryIndex(-1);
@@ -77,7 +75,6 @@ const UploadDocument = () => {
     setFile(droppedFile);
     setError('');
     setResult(null);
-    setEditMode(false);
     setSummary('');
     setHistory([]);
     setHistoryIndex(-1);
@@ -341,7 +338,6 @@ const UploadDocument = () => {
         artist: response.data.data.artist
       }));
 
-      setEditMode(false);
       setPhotoFile(null);
       setPhotoPreview(null);
       
@@ -598,23 +594,6 @@ const UploadDocument = () => {
                           Verify Artist
                         </button>
                       )}
-                      
-                      <button
-                        onClick={() => setEditMode(!editMode)}
-                        className={`text-sm ${editMode ? 'btn-secondary' : 'btn-primary'}`}
-                      >
-                        {editMode ? (
-                          <>
-                            <EyeIcon className="w-4 h-4 mr-1" />
-                            View Mode
-                          </>
-                        ) : (
-                          <>
-                            <PencilIcon className="w-4 h-4 mr-1" />
-                            Edit Details
-                          </>
-                        )}
-                      </button>
                     </div>
                   </div>
                 </div>
@@ -674,26 +653,22 @@ const UploadDocument = () => {
                         )}
                       </div>
 
-                      {editMode && (
-                        <>
-                          <input
-                            type="file"
-                            id="photo-upload"
-                            accept="image/*"
-                            onChange={handlePhotoChange}
-                            className="hidden"
-                          />
-                          
-                          <button
-                            type="button"
-                            onClick={() => document.getElementById('photo-upload').click()}
-                            className="w-full btn-secondary flex items-center justify-center text-sm"
-                          >
-                            <PhotoIcon className="w-4 h-4 mr-2" />
-                            {result.artist.profilePhoto ? 'Change Photo' : 'Upload Photo'}
-                          </button>
-                        </>
-                      )}
+                      <input
+                        type="file"
+                        id="photo-upload"
+                        accept="image/*"
+                        onChange={handlePhotoChange}
+                        className="hidden"
+                      />
+                      
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('photo-upload').click()}
+                        className="w-full btn-secondary flex items-center justify-center text-sm"
+                      >
+                        <PhotoIcon className="w-4 h-4 mr-2" />
+                        {result.artist.profilePhoto ? 'Change Photo' : 'Upload Photo'}
+                      </button>
 
                       {/* Status Info */}
                       <div className="mt-4 pt-4 border-t border-secondary-200">
@@ -731,132 +706,66 @@ const UploadDocument = () => {
                     </div>
                   </div>
 
-                  {/* Artist Details */}
+                  {/* Artist Details - Always Editable */}
                   <div className="lg:col-span-2">
                     <div className="card">
                       <h4 className="text-md font-semibold text-secondary-900 mb-4">
                         Artist Information
                       </h4>
 
-                      {editMode ? (
-                        /* Enhanced Edit Form with Field Verification */
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              {renderFieldWithVerification('artistName', 'Artist Name *', formData.artistName)}
-                            </div>
-
-                            <div>
-                              {renderFieldWithVerification('guruName', 'Guru Name', formData.guruName)}
-                            </div>
-
-                            <div>
-                              {renderFieldWithVerification('gharana', 'Gharana', formData.gharana)}
-                            </div>
-
-                            <div>
-                              {renderFieldWithVerification('contactDetails.phone', 'Phone', formData.contactDetails.phone, 'tel')}
-                            </div>
-
-                            <div className="md:col-span-2">
-                              {renderFieldWithVerification('contactDetails.email', 'Email', formData.contactDetails.email, 'email')}
-                            </div>
-
-                            <div className="md:col-span-2">
-                              {renderFieldWithVerification('contactDetails.address', 'Address', formData.contactDetails.address, 'text', 2)}
-                            </div>
-
-                            <div className="md:col-span-2">
-                              {renderFieldWithVerification('biography', 'Biography', formData.biography, 'text', 4)}
-                            </div>
-
-                            <div className="md:col-span-2">
-                              {renderFieldWithVerification('description', 'Description', formData.description, 'text', 3)}
-                            </div>
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            {renderFieldWithVerification('artistName', 'Artist Name *', formData.artistName)}
                           </div>
 
-                          <div className="flex justify-end space-x-3 pt-4 border-t border-secondary-200">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setEditMode(false);
-                                setPhotoFile(null);
-                                setPhotoPreview(null);
-                              }}
-                              className="btn-secondary text-sm"
-                            >
-                              Cancel
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleSaveChanges}
-                              disabled={saving}
-                              className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                              {saving ? (
-                                <div className="flex items-center">
-                                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                  Saving...
-                                </div>
-                              ) : (
-                                'Save Changes'
-                              )}
-                            </button>
+                          <div>
+                            {renderFieldWithVerification('guruName', 'Guru Name', formData.guruName)}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('gharana', 'Gharana', formData.gharana)}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('contactDetails.phone', 'Phone', formData.contactDetails.phone, 'tel')}
+                          </div>
+
+                          <div className="md:col-span-2">
+                            {renderFieldWithVerification('contactDetails.email', 'Email', formData.contactDetails.email, 'email')}
+                          </div>
+
+                          <div className="md:col-span-2">
+                            {renderFieldWithVerification('contactDetails.address', 'Address', formData.contactDetails.address, 'text', 2)}
+                          </div>
+
+                          <div className="md:col-span-2">
+                            {renderFieldWithVerification('biography', 'Biography', formData.biography, 'text', 4)}
+                          </div>
+
+                          <div className="md:col-span-2">
+                            {renderFieldWithVerification('description', 'Description', formData.description, 'text', 3)}
                           </div>
                         </div>
-                      ) : (
-                        /* Enhanced View Mode */
-                        <div className="space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            {result.extractedData.artistName && (
-                              <div className={`p-3 rounded-lg ${fieldVerification.artistName ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                                <label className="block text-sm font-medium text-secondary-700">Artist Name</label>
-                                <p className="text-secondary-900 text-sm">{result.extractedData.artistName}</p>
-                                {fieldVerification.artistName && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-1" />}
-                              </div>
-                            )}
-                            {result.extractedData.guruName && (
-                              <div className={`p-3 rounded-lg ${fieldVerification.guruName ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                                <label className="block text-sm font-medium text-secondary-700">Guru Name</label>
-                                <p className="text-secondary-900 text-sm">{result.extractedData.guruName}</p>
-                                {fieldVerification.guruName && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-1" />}
-                              </div>
-                            )}
-                            {result.extractedData.gharana && (
-                              <div className={`p-3 rounded-lg ${fieldVerification.gharana ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                                <label className="block text-sm font-medium text-secondary-700">Gharana</label>
-                                <p className="text-secondary-900 text-sm">{result.extractedData.gharana}</p>
-                                {fieldVerification.gharana && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-1" />}
-                              </div>
-                            )}
-                          </div>
 
-                          {result.extractedData.contactDetails && (
-                            <div className="p-3 rounded-lg bg-secondary-50">
-                              <label className="block text-sm font-medium text-secondary-700 mb-2">Contact Details</label>
-                              <div className="space-y-1 text-sm">
-                                {result.extractedData.contactDetails.phone && (
-                                  <p><strong>Phone:</strong> {result.extractedData.contactDetails.phone}</p>
-                                )}
-                                {result.extractedData.contactDetails.email && (
-                                  <p><strong>Email:</strong> {result.extractedData.contactDetails.email}</p>
-                                )}
-                                {result.extractedData.contactDetails.address && (
-                                  <p><strong>Address:</strong> {result.extractedData.contactDetails.address}</p>
-                                )}
+                        <div className="flex justify-end space-x-3 pt-4 border-t border-secondary-200">
+                          <button
+                            type="button"
+                            onClick={handleSaveChanges}
+                            disabled={saving}
+                            className="btn-primary text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {saving ? (
+                              <div className="flex items-center">
+                                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                                Saving...
                               </div>
-                            </div>
-                          )}
-
-                          {result.extractedData.biography && (
-                            <div className={`p-3 rounded-lg ${fieldVerification.biography ? 'bg-green-50 border border-green-200' : 'bg-gray-50'}`}>
-                              <label className="block text-sm font-medium text-secondary-700 mb-2">Biography</label>
-                              <p className="text-secondary-900 text-sm leading-relaxed">{result.extractedData.biography}</p>
-                              {fieldVerification.biography && <CheckCircleIcon className="w-4 h-4 text-green-500 mt-2" />}
-                            </div>
-                          )}
+                            ) : (
+                              'Save Changes'
+                            )}
+                          </button>
                         </div>
-                      )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -883,7 +792,6 @@ const UploadDocument = () => {
                       <button
                         onClick={() => {
                           setResult(null);
-                          setEditMode(false);
                           setFormData({
                             artistName: '',
                             guruName: '',
