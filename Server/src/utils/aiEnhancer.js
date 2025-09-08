@@ -102,18 +102,26 @@ ${rawText.substring(0, 2000)}...
 INSTRUCTIONS:
 1. Clean and format all names properly (proper capitalization, titles like "Ustad", "Pandit")
 2. Standardize phone numbers and email addresses
-3. Write a concise, professional biography
-4. Return ONLY valid JSON in this exact format:
+3. Extract social media handles and website information
+4. Write a concise, professional biography and description
+5. Return ONLY valid JSON in this exact format:
 
 {
   "artistName": "properly formatted name",
   "guruName": "properly formatted guru name with title",
   "gharana": "gharana name without 'gharana' suffix",
   "biography": "2-3 sentence professional biography",
+  "description": "1-2 sentence description of their style and contributions",
   "contactDetails": {
     "phone": "standardized phone format",
     "email": "lowercase email",
-    "address": "properly formatted address"
+    "address": "properly formatted address",
+    "website": "website URL if found",
+    "instagram": "instagram handle without @",
+    "facebook": "facebook handle",
+    "twitter": "twitter handle without @",
+    "youtube": "youtube channel name",
+    "linkedin": "linkedin profile name"
   }
 }
 
@@ -208,10 +216,17 @@ Return only the JSON, no additional text.`;
       guruName: this.formatGuruName(cleanedData.guruName),
       gharana: this.formatGharana(cleanedData.gharana),
       biography: this.formatBiography(cleanedData.biography),
+      description: this.formatText(cleanedData.description) || this.generateBasicDescription(cleanedData),
       contactDetails: {
         phone: this.formatPhone(cleanedData.contactDetails?.phone),
         email: this.formatEmail(cleanedData.contactDetails?.email),
-        address: this.formatAddress(cleanedData.contactDetails?.address)
+        address: this.formatAddress(cleanedData.contactDetails?.address),
+        website: this.formatUrl(cleanedData.contactDetails?.website),
+        instagram: this.formatSocialHandle(cleanedData.contactDetails?.instagram),
+        facebook: this.formatSocialHandle(cleanedData.contactDetails?.facebook),
+        twitter: this.formatSocialHandle(cleanedData.contactDetails?.twitter),
+        youtube: this.formatSocialHandle(cleanedData.contactDetails?.youtube),
+        linkedin: this.formatSocialHandle(cleanedData.contactDetails?.linkedin)
       },
       _metadata: {
         provider: 'deterministic',
@@ -362,6 +377,31 @@ Return only the JSON, no additional text.`;
   formatAddress(address) {
     if (!address) return null;
     return address.replace(/\s+/g, ' ').trim();
+  }
+
+  formatUrl(url) {
+    if (!url) return null;
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      return `https://${url}`;
+    }
+    return url;
+  }
+
+  formatSocialHandle(handle) {
+    if (!handle) return null;
+    return handle.replace(/^@/, '').trim();
+  }
+
+  generateBasicDescription(cleanedData) {
+    const { artistName, gharana, guruName } = cleanedData;
+    if (!artistName) return null;
+    
+    let description = `${artistName} is a classical music artist`;
+    if (gharana) description += ` from the ${gharana} gharana`;
+    if (guruName) description += ` trained under ${guruName}`;
+    description += '.';
+    
+    return description;
   }
 
   /**

@@ -40,10 +40,17 @@ const UploadDocument = () => {
     gharana: '',
     biography: '',
     description: '',
+    aiGeneratedSummary: '',
     contactDetails: {
       phone: '',
       email: '',
-      address: ''
+      address: '',
+      website: '',
+      instagram: '',
+      facebook: '',
+      twitter: '',
+      youtube: '',
+      linkedin: ''
     }
   });
 
@@ -54,9 +61,16 @@ const UploadDocument = () => {
     gharana: false,
     biography: false,
     description: false,
+    aiGeneratedSummary: false,
     'contactDetails.phone': false,
     'contactDetails.email': false,
-    'contactDetails.address': false
+    'contactDetails.address': false,
+    'contactDetails.website': false,
+    'contactDetails.instagram': false,
+    'contactDetails.facebook': false,
+    'contactDetails.twitter': false,
+    'contactDetails.youtube': false,
+    'contactDetails.linkedin': false
   });
 
   const handleFileChange = (e) => {
@@ -122,10 +136,17 @@ const UploadDocument = () => {
         gharana: resultData.extractedData.gharana || '',
         biography: resultData.extractedData.biography || '',
         description: resultData.extractedData.description || '',
+        aiGeneratedSummary: resultData.artist.aiGeneratedSummary || '',
         contactDetails: {
           phone: resultData.extractedData.contactDetails?.phone || '',
           email: resultData.extractedData.contactDetails?.email || '',
-          address: resultData.extractedData.contactDetails?.address || ''
+          address: resultData.extractedData.contactDetails?.address || '',
+          website: resultData.extractedData.contactDetails?.website || '',
+          instagram: resultData.extractedData.contactDetails?.instagram || '',
+          facebook: resultData.extractedData.contactDetails?.facebook || '',
+          twitter: resultData.extractedData.contactDetails?.twitter || '',
+          youtube: resultData.extractedData.contactDetails?.youtube || '',
+          linkedin: resultData.extractedData.contactDetails?.linkedin || ''
         }
       };
       
@@ -266,11 +287,21 @@ const UploadDocument = () => {
         guruName: formData.guruName,
         gharana: formData.gharana,
         biography: formData.biography,
-        rawText: result?.extractedData?.rawText
+        rawText: result?.extractedData?.rawText,
+        artistId: result?.artist?._id
       });
 
       const summaryData = response.data.data;
-      setSummary(summaryData.summary || summaryData.description || summaryData.biography);
+      const generatedSummary = summaryData.summary || summaryData.description || summaryData.biography;
+      setSummary(generatedSummary);
+      
+      // Update form data with generated summary
+      const newFormData = {
+        ...formData,
+        aiGeneratedSummary: generatedSummary
+      };
+      setFormData(newFormData);
+      saveToHistory(newFormData);
     } catch (error) {
       console.error('Summary generation failed:', error);
       setError(`Failed to generate summary: ${error.response?.data?.message || error.message}`);
@@ -732,22 +763,52 @@ const UploadDocument = () => {
                           <div>
                             {renderFieldWithVerification('contactDetails.phone', 'Phone', formData.contactDetails.phone, 'tel')}
                           </div>
+                        </div>
 
-                          <div className="md:col-span-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
                             {renderFieldWithVerification('contactDetails.email', 'Email', formData.contactDetails.email, 'email')}
                           </div>
 
-                          <div className="md:col-span-2">
+                          <div>
+                            {renderFieldWithVerification('contactDetails.website', 'Website', formData.contactDetails.website, 'url')}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('contactDetails.instagram', 'Instagram', formData.contactDetails.instagram)}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('contactDetails.facebook', 'Facebook', formData.contactDetails.facebook)}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('contactDetails.twitter', 'Twitter/X', formData.contactDetails.twitter)}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('contactDetails.youtube', 'YouTube', formData.contactDetails.youtube)}
+                          </div>
+
+                          <div>
+                            {renderFieldWithVerification('contactDetails.linkedin', 'LinkedIn', formData.contactDetails.linkedin)}
+                          </div>
+                        </div>
+
+                        <div>
                             {renderFieldWithVerification('contactDetails.address', 'Address', formData.contactDetails.address, 'text', 2)}
-                          </div>
+                        </div>
 
-                          <div className="md:col-span-2">
+                        <div>
                             {renderFieldWithVerification('biography', 'Biography', formData.biography, 'text', 4)}
-                          </div>
+                        </div>
 
-                          <div className="md:col-span-2">
+                        <div>
                             {renderFieldWithVerification('description', 'Description', formData.description, 'text', 3)}
-                          </div>
+                        </div>
+
+                        <div>
+                          {renderFieldWithVerification('aiGeneratedSummary', 'AI Generated Summary', formData.aiGeneratedSummary, 'text', 3)}
                         </div>
 
                         <div className="flex justify-end space-x-3 pt-4 border-t border-secondary-200">
@@ -800,7 +861,18 @@ const UploadDocument = () => {
                             gharana: '',
                             biography: '',
                             description: '',
-                            contactDetails: { phone: '', email: '', address: '' }
+                           aiGeneratedSummary: '',
+                           contactDetails: { 
+                             phone: '', 
+                             email: '', 
+                             address: '',
+                             website: '',
+                             instagram: '',
+                             facebook: '',
+                             twitter: '',
+                             youtube: '',
+                             linkedin: ''
+                           }
                           });
                           setFieldVerification({
                             artistName: false,
@@ -808,9 +880,16 @@ const UploadDocument = () => {
                             gharana: false,
                             biography: false,
                             description: false,
+                           aiGeneratedSummary: false,
                             'contactDetails.phone': false,
                             'contactDetails.email': false,
-                            'contactDetails.address': false
+                           'contactDetails.address': false,
+                           'contactDetails.website': false,
+                           'contactDetails.instagram': false,
+                           'contactDetails.facebook': false,
+                           'contactDetails.twitter': false,
+                           'contactDetails.youtube': false,
+                           'contactDetails.linkedin': false
                           });
                           setSummary('');
                           setHistory([]);

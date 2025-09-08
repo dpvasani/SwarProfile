@@ -607,7 +607,17 @@ class DocumentExtractor {
    * Deterministic contact details extraction with regex
    */
   extractContactDetailsDeterministic(text) {
-    const contactDetails = {};
+    const contactDetails = {
+      phone: null,
+      email: null,
+      address: null,
+      website: null,
+      instagram: null,
+      facebook: null,
+      twitter: null,
+      youtube: null,
+      linkedin: null
+    };
 
     // Phone regex: /\+?\d[\d\s-]{7,}/
     const phonePattern = /\+?\d[\d\s-]{7,}/g;
@@ -629,6 +639,44 @@ class DocumentExtractor {
       contactDetails.email = emailMatch[0].toLowerCase().trim();
     }
 
+    // Website extraction
+    const websitePattern = /(?:website|site|web)\s*:?\s*((?:https?:\/\/)?(?:www\.)?[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?)/i;
+    const websiteMatch = text.match(websitePattern);
+    if (websiteMatch) {
+      contactDetails.website = websiteMatch[1].trim();
+    }
+
+    // Social media extraction
+    const instagramPattern = /(?:instagram|insta|ig)\s*:?\s*(?:@|https?:\/\/(?:www\.)?instagram\.com\/)?([a-zA-Z0-9._]+)/i;
+    const instagramMatch = text.match(instagramPattern);
+    if (instagramMatch) {
+      contactDetails.instagram = instagramMatch[1].trim();
+    }
+
+    const facebookPattern = /(?:facebook|fb)\s*:?\s*(?:https?:\/\/(?:www\.)?facebook\.com\/)?([a-zA-Z0-9._]+)/i;
+    const facebookMatch = text.match(facebookPattern);
+    if (facebookMatch) {
+      contactDetails.facebook = facebookMatch[1].trim();
+    }
+
+    const twitterPattern = /(?:twitter|x\.com)\s*:?\s*(?:@|https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/)?([a-zA-Z0-9._]+)/i;
+    const twitterMatch = text.match(twitterPattern);
+    if (twitterMatch) {
+      contactDetails.twitter = twitterMatch[1].trim();
+    }
+
+    const youtubePattern = /(?:youtube|yt)\s*:?\s*(?:https?:\/\/(?:www\.)?youtube\.com\/(?:channel\/|c\/|user\/)?)?([a-zA-Z0-9._-]+)/i;
+    const youtubeMatch = text.match(youtubePattern);
+    if (youtubeMatch) {
+      contactDetails.youtube = youtubeMatch[1].trim();
+    }
+
+    const linkedinPattern = /(?:linkedin|li)\s*:?\s*(?:https?:\/\/(?:www\.)?linkedin\.com\/in\/)?([a-zA-Z0-9._-]+)/i;
+    const linkedinMatch = text.match(linkedinPattern);
+    if (linkedinMatch) {
+      contactDetails.linkedin = linkedinMatch[1].trim();
+    }
+
     // Address extraction
     const addressPatterns = [
       /(?:address|location|residence)\s*:?\s*([^\n\r]+)/i,
@@ -642,11 +690,7 @@ class DocumentExtractor {
       }
     }
 
-    return Object.keys(contactDetails).length > 0 ? contactDetails : {
-      phone: null,
-      email: null,
-      address: null
-    };
+    return contactDetails;
   }
 
   /**

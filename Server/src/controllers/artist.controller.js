@@ -62,6 +62,7 @@ const uploadAndExtractDocument = asyncHandler(async (req, res) => {
       artist.gharana = cleanedData.gharana;
       artist.contactDetails = cleanedData.contactDetails;
       artist.biography = cleanedData.biography;
+      artist.description = cleanedData.description;
       artist.rawExtractedData = extractedData.rawText;
       artist.originalDocument.url = documentUpload.url;
       artist.extractionStatus = 'completed';
@@ -219,7 +220,7 @@ const updateArtist = asyncHandler(async (req, res) => {
   // Update allowed fields
   const allowedUpdates = [
     'artistName', 'guruName', 'gharana', 'contactDetails', 
-    'biography', 'description', 'additionalFields'
+    'biography', 'description', 'aiGeneratedSummary', 'additionalFields'
   ];
 
   allowedUpdates.forEach(field => {
@@ -431,6 +432,15 @@ const generateSummary = asyncHandler(async (req, res) => {
     
     const summaryData = await aiEnhancer.enhanceSummary(cleanedData, rawText || '');
     console.log('✅ Summary generated successfully');
+    
+    // Save the generated summary to the database if artistId is provided
+    if (req.body.artistId) {
+      const artist = await Artist.findById(req.body.artistId);
+      if (artist) {
+        artist.aiGeneratedSummary = summaryData.summary || summaryData.description || summaryData.biography;
+        await artist.save();
+      }
+    }
     
     return res.status(200).json(
       new ApiResponse(200, summaryData, "Summary generated successfully")

@@ -36,6 +36,30 @@ const artistSchema = new Schema(
         type: String,
         trim: true,
       },
+      website: {
+        type: String,
+        trim: true,
+      },
+      instagram: {
+        type: String,
+        trim: true,
+      },
+      facebook: {
+        type: String,
+        trim: true,
+      },
+      twitter: {
+        type: String,
+        trim: true,
+      },
+      youtube: {
+        type: String,
+        trim: true,
+      },
+      linkedin: {
+        type: String,
+        trim: true,
+      },
     },
     
     // Biography and Description
@@ -44,6 +68,12 @@ const artistSchema = new Schema(
       trim: true,
     },
     description: {
+      type: String,
+      trim: true,
+    },
+    
+    // AI-Generated Summary
+    aiGeneratedSummary: {
       type: String,
       trim: true,
     },
