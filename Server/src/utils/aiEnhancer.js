@@ -102,7 +102,7 @@ ${rawText.substring(0, 2000)}...
 INSTRUCTIONS:
 1. Clean and format all names properly (proper capitalization, titles like "Ustad", "Pandit")
 2. Standardize phone numbers and email addresses
-3. Extract social media handles and website information
+3. Extract social media information and convert to full URLs
 4. Write a concise, professional biography and description
 5. Return ONLY valid JSON in this exact format:
 
@@ -117,11 +117,11 @@ INSTRUCTIONS:
     "email": "lowercase email",
     "address": "properly formatted address",
     "website": "website URL if found",
-    "instagram": "instagram handle without @",
-    "facebook": "facebook handle",
-    "twitter": "twitter handle without @",
-    "youtube": "youtube channel name",
-    "linkedin": "linkedin profile name"
+    "instagram": "https://instagram.com/username (full URL)",
+    "facebook": "https://facebook.com/username (full URL)",
+    "twitter": "https://twitter.com/username (full URL)",
+    "youtube": "https://youtube.com/c/channelname (full URL)",
+    "linkedin": "https://linkedin.com/in/username (full URL)"
   }
 }
 
@@ -222,11 +222,11 @@ Return only the JSON, no additional text.`;
         email: this.formatEmail(cleanedData.contactDetails?.email),
         address: this.formatAddress(cleanedData.contactDetails?.address),
         website: this.formatUrl(cleanedData.contactDetails?.website),
-        instagram: this.formatSocialHandle(cleanedData.contactDetails?.instagram),
-        facebook: this.formatSocialHandle(cleanedData.contactDetails?.facebook),
-        twitter: this.formatSocialHandle(cleanedData.contactDetails?.twitter),
-        youtube: this.formatSocialHandle(cleanedData.contactDetails?.youtube),
-        linkedin: this.formatSocialHandle(cleanedData.contactDetails?.linkedin)
+        instagram: this.formatInstagramUrl(cleanedData.contactDetails?.instagram),
+        facebook: this.formatFacebookUrl(cleanedData.contactDetails?.facebook),
+        twitter: this.formatTwitterUrl(cleanedData.contactDetails?.twitter),
+        youtube: this.formatYouTubeUrl(cleanedData.contactDetails?.youtube),
+        linkedin: this.formatLinkedInUrl(cleanedData.contactDetails?.linkedin)
       },
       _metadata: {
         provider: 'deterministic',
@@ -390,6 +390,44 @@ Return only the JSON, no additional text.`;
   formatSocialHandle(handle) {
     if (!handle) return null;
     return handle.replace(/^@/, '').trim();
+  }
+
+  /**
+   * Format social media URLs
+   */
+  formatInstagramUrl(handle) {
+    if (!handle) return null;
+    const cleanHandle = handle.replace(/^@/, '').trim();
+    if (cleanHandle.startsWith('http')) return cleanHandle;
+    return `https://instagram.com/${cleanHandle}`;
+  }
+
+  formatFacebookUrl(handle) {
+    if (!handle) return null;
+    const cleanHandle = handle.replace(/^@/, '').trim();
+    if (cleanHandle.startsWith('http')) return cleanHandle;
+    return `https://facebook.com/${cleanHandle}`;
+  }
+
+  formatTwitterUrl(handle) {
+    if (!handle) return null;
+    const cleanHandle = handle.replace(/^@/, '').trim();
+    if (cleanHandle.startsWith('http')) return cleanHandle;
+    return `https://twitter.com/${cleanHandle}`;
+  }
+
+  formatYouTubeUrl(handle) {
+    if (!handle) return null;
+    const cleanHandle = handle.replace(/^@/, '').trim();
+    if (cleanHandle.startsWith('http')) return cleanHandle;
+    return `https://youtube.com/c/${cleanHandle}`;
+  }
+
+  formatLinkedInUrl(handle) {
+    if (!handle) return null;
+    const cleanHandle = handle.replace(/^@/, '').trim();
+    if (cleanHandle.startsWith('http')) return cleanHandle;
+    return `https://linkedin.com/in/${cleanHandle}`;
   }
 
   generateBasicDescription(cleanedData) {

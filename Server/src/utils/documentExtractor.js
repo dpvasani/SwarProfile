@@ -650,31 +650,36 @@ class DocumentExtractor {
     const instagramPattern = /(?:instagram|insta|ig)\s*:?\s*(?:@|https?:\/\/(?:www\.)?instagram\.com\/)?([a-zA-Z0-9._]+)/i;
     const instagramMatch = text.match(instagramPattern);
     if (instagramMatch) {
-      contactDetails.instagram = instagramMatch[1].trim();
+      const handle = instagramMatch[1].trim();
+      contactDetails.instagram = handle.startsWith('http') ? handle : `https://instagram.com/${handle}`;
     }
 
     const facebookPattern = /(?:facebook|fb)\s*:?\s*(?:https?:\/\/(?:www\.)?facebook\.com\/)?([a-zA-Z0-9._]+)/i;
     const facebookMatch = text.match(facebookPattern);
     if (facebookMatch) {
-      contactDetails.facebook = facebookMatch[1].trim();
+      const handle = facebookMatch[1].trim();
+      contactDetails.facebook = handle.startsWith('http') ? handle : `https://facebook.com/${handle}`;
     }
 
     const twitterPattern = /(?:twitter|x\.com)\s*:?\s*(?:@|https?:\/\/(?:www\.)?(?:twitter\.com|x\.com)\/)?([a-zA-Z0-9._]+)/i;
     const twitterMatch = text.match(twitterPattern);
     if (twitterMatch) {
-      contactDetails.twitter = twitterMatch[1].trim();
+      const handle = twitterMatch[1].trim();
+      contactDetails.twitter = handle.startsWith('http') ? handle : `https://twitter.com/${handle}`;
     }
 
     const youtubePattern = /(?:youtube|yt)\s*:?\s*(?:https?:\/\/(?:www\.)?youtube\.com\/(?:channel\/|c\/|user\/)?)?([a-zA-Z0-9._-]+)/i;
     const youtubeMatch = text.match(youtubePattern);
     if (youtubeMatch) {
-      contactDetails.youtube = youtubeMatch[1].trim();
+      const handle = youtubeMatch[1].trim();
+      contactDetails.youtube = handle.startsWith('http') ? handle : `https://youtube.com/c/${handle}`;
     }
 
     const linkedinPattern = /(?:linkedin|li)\s*:?\s*(?:https?:\/\/(?:www\.)?linkedin\.com\/in\/)?([a-zA-Z0-9._-]+)/i;
     const linkedinMatch = text.match(linkedinPattern);
     if (linkedinMatch) {
-      contactDetails.linkedin = linkedinMatch[1].trim();
+      const handle = linkedinMatch[1].trim();
+      contactDetails.linkedin = handle.startsWith('http') ? handle : `https://linkedin.com/in/${handle}`;
     }
 
     // Address extraction
