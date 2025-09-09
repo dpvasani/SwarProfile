@@ -98,6 +98,14 @@
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
+
+  /* Admin-style gradient applied to text (uses same purple used by Admin pill) */
+  .admin-gradient-text {
+    background: linear-gradient(135deg, #7e22ce 0%, #7e22ce 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
   
   .glass-effect {
     background: rgba(255, 255, 255, 0.25);

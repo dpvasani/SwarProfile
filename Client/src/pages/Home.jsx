@@ -43,7 +43,7 @@ const Home = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
             <h1 className="text-5xl md:text-7xl font-bold mb-8 animate-fade-in">
-              <span className="gradient-text">Discover Classical Music</span>
+                <span className="admin-gradient-text text-5xl md:text-6xl font-extrabold">Discover Classical Music</span>
               <span className="block text-4xl md:text-5xl mt-4 text-dark-700">Artists & Their Legacy</span>
             </h1>
             <p className="text-xl text-dark-600 mb-12 max-w-4xl mx-auto animate-slide-up leading-relaxed">
