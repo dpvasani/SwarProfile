@@ -38,30 +38,31 @@ const Home = () => {
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-primary-600 via-primary-700 to-primary-800">
-        <div className="absolute inset-0 bg-black/10"></div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600/20 via-secondary-600/20 to-primary-800/20"></div>
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-32">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 animate-fade-in">
-              Discover Classical Music
-              <span className="block text-primary-200">Artists & Their Legacy</span>
+            <h1 className="text-5xl md:text-7xl font-bold mb-8 animate-fade-in">
+              <span className="gradient-text">Discover Classical Music</span>
+              <span className="block text-4xl md:text-5xl mt-4 text-dark-700">Artists & Their Legacy</span>
             </h1>
-            <p className="text-xl text-primary-100 mb-8 max-w-3xl mx-auto animate-slide-up">
+            <p className="text-xl text-dark-600 mb-12 max-w-4xl mx-auto animate-slide-up leading-relaxed">
               Explore the rich world of classical music through comprehensive artist profiles, 
               their guru-shishya relationships, and the beautiful traditions of different gharanas.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center animate-slide-up">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center animate-slide-up">
               <Link
                 to="/artists"
-                className="inline-flex items-center px-8 py-3 bg-white text-primary-700 font-semibold rounded-lg hover:bg-primary-50 transition-all duration-200 shadow-lg hover:shadow-xl"
+                className="btn-primary text-lg px-10 py-4 hover:scale-105"
               >
+                <SparklesIcon className="w-6 h-6 text-white stroke-white" />
                 Explore Artists
-                <ArrowRightIcon className="ml-2 w-5 h-5" />
+                <ArrowRightIcon className="w-6 h-6 text-white stroke-white" />
               </Link>
               {!isAuthenticated && (
                 <Link
                   to="/register"
-                  className="inline-flex items-center px-8 py-3 bg-primary-500 text-white font-semibold rounded-lg hover:bg-primary-400 transition-all duration-200 shadow-lg hover:shadow-xl border border-primary-400"
+                  className="btn-secondary text-lg px-10 py-4 hover:scale-105"
                 >
                   Get Started
                 </Link>
@@ -70,21 +71,22 @@ const Home = () => {
           </div>
         </div>
         
-        {/* Decorative elements */}
+        {/* Decorative floating elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-white/5 rounded-full blur-3xl"></div>
+          <div className="absolute top-20 left-10 w-20 h-20 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full blur-xl opacity-30 floating-element"></div>
+          <div className="absolute top-40 right-20 w-32 h-32 bg-gradient-to-br from-secondary-400 to-primary-400 rounded-full blur-2xl opacity-20 floating-element" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute bottom-20 left-1/4 w-24 h-24 bg-gradient-to-br from-accent-400 to-primary-400 rounded-full blur-xl opacity-25 floating-element" style={{ animationDelay: '4s' }}></div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white">
+      <section className="py-24">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-secondary-900 mb-4">
+          <div className="text-center mb-20">
+            <h2 className="text-4xl md:text-5xl font-bold gradient-text mb-6">
               Preserving Musical Heritage
             </h2>
-            <p className="text-lg text-secondary-600 max-w-2xl mx-auto">
+            <p className="text-xl text-dark-600 max-w-3xl mx-auto leading-relaxed">
               Our platform combines modern technology with traditional knowledge to create 
               a comprehensive database of classical music artists and their contributions.
             </p>
@@ -96,15 +98,16 @@ const Home = () => {
               return (
                 <div
                   key={index}
-                  className="card hover:scale-105 transition-all duration-300 text-center group"
+                  className="card text-center group hover:scale-105"
+                  style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4 group-hover:bg-primary-200 transition-colors duration-200">
-                    <Icon className="w-6 h-6 text-primary-600" />
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:shadow-lg transition-all duration-300 floating-element">
+                    <Icon className="w-8 h-8 text-white stroke-[#7e22ce]" />
                   </div>
-                  <h3 className="text-lg font-semibold text-secondary-900 mb-2">
+                  <h3 className="text-xl font-bold text-dark-800 mb-4">
                     {feature.title}
                   </h3>
-                  <p className="text-secondary-600 text-sm leading-relaxed">
+                  <p className="text-dark-600 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -116,25 +119,25 @@ const Home = () => {
 
       {/* Admin Section */}
       {isAdmin && (
-        <section className="py-16 bg-gradient-to-r from-primary-50 to-secondary-50">
+        <section className="py-20">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="card max-w-4xl mx-auto text-center">
-              <h2 className="text-2xl font-bold text-secondary-900 mb-4">
+            <div className="card max-w-4xl mx-auto text-center bg-gradient-to-br from-accent-50 to-primary-50 border-2 border-accent-200">
+              <h2 className="text-3xl font-bold gradient-text mb-6">
                 Admin Dashboard
               </h2>
-              <p className="text-secondary-600 mb-6">
+              <p className="text-dark-600 mb-8 text-lg">
                 Manage artist profiles, upload documents, and oversee the platform's content.
               </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-6 justify-center">
                 <Link
                   to="/admin"
-                  className="btn-primary"
+                  className="btn-primary text-lg"
                 >
                   Go to Dashboard
                 </Link>
                 <Link
                   to="/upload"
-                  className="btn-secondary"
+                  className="btn-secondary text-lg"
                 >
                   Upload Document
                 </Link>
@@ -146,30 +149,35 @@ const Home = () => {
 
       {/* CTA Section */}
       {!isAuthenticated && (
-        <section className="py-20 bg-secondary-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">
+        <section className="py-24 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-dark-900 via-secondary-900 to-primary-900 opacity-95"></div>
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
               Join Our Community
             </h2>
-            <p className="text-secondary-300 text-lg mb-8 max-w-2xl mx-auto">
+            <p className="text-gray-300 text-xl mb-10 max-w-3xl mx-auto leading-relaxed">
               Become part of our mission to preserve and celebrate the rich heritage 
               of classical music and its legendary artists.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-6 justify-center">
               <Link
                 to="/register"
-                className="inline-flex items-center px-8 py-3 bg-primary-600 text-white font-semibold rounded-lg hover:bg-primary-700 transition-all duration-200"
+                className="btn-primary text-lg px-10 py-4"
               >
                 Create Account
               </Link>
               <Link
                 to="/login"
-                className="inline-flex items-center px-8 py-3 bg-transparent text-white font-semibold rounded-lg border border-secondary-600 hover:bg-secondary-800 transition-all duration-200"
+                className="btn-secondary text-lg px-10 py-4 bg-white/10 hover:bg-white/20 text-white border-white/30"
               >
                 Sign In
               </Link>
             </div>
           </div>
+          
+          {/* Background decorations */}
+          <div className="absolute top-10 left-10 w-32 h-32 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full blur-3xl opacity-20"></div>
+          <div className="absolute bottom-10 right-10 w-40 h-40 bg-gradient-to-br from-secondary-400 to-accent-400 rounded-full blur-3xl opacity-20"></div>
         </section>
       )}
     </div>

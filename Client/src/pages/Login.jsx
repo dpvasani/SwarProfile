@@ -43,30 +43,36 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full blur-3xl opacity-20 floating-element"></div>
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-secondary-400 to-accent-400 rounded-full blur-3xl opacity-20 floating-element" style={{ animationDelay: '2s' }}></div>
+      </div>
+      
+      <div className="max-w-md w-full space-y-8 relative z-10">
         <div className="text-center">
-          <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center mx-auto mb-4">
-            <span className="text-white font-bold text-xl">AP</span>
+          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl floating-element">
+            <span className="text-white font-bold text-2xl">S</span>
           </div>
-          <h2 className="text-3xl font-bold text-secondary-900">
+          <h2 className="text-4xl font-bold gradient-text mb-2">
             Welcome Back
           </h2>
-          <p className="mt-2 text-secondary-600">
+          <p className="mt-4 text-dark-600 text-lg">
             Sign in to your account to continue
           </p>
         </div>
 
-        <div className="card">
+        <div className="card border-2 border-primary-100">
           <form className="space-y-6" onSubmit={handleSubmit}>
             {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+              <div className="bg-red-50 border-2 border-red-200 text-red-700 px-6 py-4 rounded-xl font-medium">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-secondary-700 mb-2">
+              <label htmlFor="email" className="block font-semibold text-dark-700 mb-3">
                 Email Address
               </label>
               <input
@@ -74,7 +80,7 @@ const Login = () => {
                 name="email"
                 type="email"
                 required
-                className="input-field"
+                className="input-field text-lg"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={handleChange}
@@ -82,7 +88,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-secondary-700 mb-2">
+              <label htmlFor="password" className="block font-semibold text-dark-700 mb-3">
                 Password
               </label>
               <div className="relative">
@@ -91,20 +97,20 @@ const Login = () => {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  className="input-field pr-10"
+                  className="input-field pr-12 text-lg"
                   placeholder="Enter your password"
                   value={formData.password}
                   onChange={handleChange}
                 />
                 <button
                   type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center"
                   onClick={() => setShowPassword(!showPassword)}
                 >
                   {showPassword ? (
-                    <EyeSlashIcon className="h-5 w-5 text-secondary-400" />
+                    <EyeSlashIcon className="h-6 w-6 text-dark-400 hover:text-primary-500 transition-colors" />
                   ) : (
-                    <EyeIcon className="h-5 w-5 text-secondary-400" />
+                    <EyeIcon className="h-6 w-6 text-dark-400 hover:text-primary-500 transition-colors" />
                   )}
                 </button>
               </div>
@@ -113,11 +119,11 @@ const Login = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary text-lg py-4 disabled:opacity-50 disabled:cursor-not-allowed mt-8"
             >
               {loading ? (
                 <div className="flex items-center justify-center">
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white mr-3"></div>
                   Signing in...
                 </div>
               ) : (
@@ -125,12 +131,12 @@ const Login = () => {
               )}
             </button>
 
-            <div className="text-center">
-              <p className="text-secondary-600">
+            <div className="text-center mt-8">
+              <p className="text-dark-600 text-lg">
                 Don't have an account?{' '}
                 <Link
                   to="/register"
-                  className="font-medium text-primary-600 hover:text-primary-500 transition-colors duration-200"
+                  className="font-semibold gradient-text hover:underline transition-all duration-200"
                 >
                   Create one here
                 </Link>

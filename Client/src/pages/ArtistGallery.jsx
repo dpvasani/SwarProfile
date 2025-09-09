@@ -105,8 +105,15 @@ const ArtistGallery = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-100 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-12 relative overflow-hidden">
+      {/* Background decorations */}
+      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-primary-400 to-secondary-400 rounded-full blur-3xl opacity-20 floating-element"></div>
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-secondary-400 to-accent-400 rounded-full blur-3xl opacity-20 floating-element" style={{ animationDelay: '3s' }}></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-gradient-to-br from-accent-400 to-primary-400 rounded-full blur-2xl opacity-15 floating-element" style={{ animationDelay: '1s' }}></div>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
@@ -119,22 +126,22 @@ const ArtistGallery = () => {
         </div>
 
         {/* Search */}
-        <div className="mb-8">
-          <form onSubmit={handleSearch} className="max-w-md mx-auto">
+        <div className="mb-12">
+          <form onSubmit={handleSearch} className="max-w-xl mx-auto">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search artists, gurus, or gharanas..."
-                className="w-full pl-10 pr-4 py-3 border border-secondary-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-white shadow-sm"
+                className="w-full pl-14 pr-12 py-4 text-lg input-field shadow-lg"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <MagnifyingGlassIcon className="absolute left-3 top-3.5 h-5 w-5 text-secondary-400" />
+              <MagnifyingGlassIcon className="absolute left-4 top-4 h-6 w-6 text-primary-500" />
               {searchTerm && (
                 <button
                   type="button"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-3.5 text-secondary-400 hover:text-secondary-600"
+                  className="absolute right-4 top-4 w-6 h-6 flex items-center justify-center text-dark-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
                 >
                   ✕
                 </button>
@@ -209,11 +216,11 @@ const ArtistGallery = () => {
 
             {/* Pagination */}
             {pagination.totalPages > 1 && (
-              <div className="flex justify-center items-center space-x-2">
+              <div className="flex justify-center items-center space-x-3">
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={currentPage === 1}
-                  className="px-3 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 rounded-md hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
@@ -224,10 +231,10 @@ const ArtistGallery = () => {
                     <button
                       key={page}
                       onClick={() => handlePageChange(page)}
-                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      className={`px-4 py-2 font-semibold rounded-xl transition-all duration-300 ${
                         currentPage === page
-                          ? 'bg-primary-600 text-white'
-                          : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50'
+                          ? 'btn-primary'
+                          : 'btn-secondary hover:scale-105'
                       }`}
                     >
                       {page}
@@ -238,7 +245,7 @@ const ArtistGallery = () => {
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={currentPage === pagination.totalPages}
-                  className="px-3 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 rounded-md hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="btn-secondary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
