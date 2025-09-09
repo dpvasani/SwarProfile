@@ -1,6 +1,23 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { NotifyProvider } from './context/NotifyContext';
+import FeedbackToast from './components/FeedbackToast';
+import { useNotify } from './context/NotifyContext';
+
+const ToastRenderer = () => {
+  const ctx = useNotify();
+  if (!ctx) return null;
+  const { toasts, remove } = ctx;
+
+  return (
+    <div className="flex flex-col items-end">
+      {toasts.map((t) => (
+        <FeedbackToast key={t.id} toast={t} onClose={() => remove(t.id)} />
+      ))}
+    </div>
+  );
+};
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 
@@ -17,10 +34,11 @@ import EditArtist from './pages/EditArtist';
 function App() {
   return (
     <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white">
-          <Navbar />
-          <Routes>
+      <NotifyProvider>
+        <Router>
+          <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white">
+            <Navbar />
+            <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
@@ -54,8 +72,13 @@ function App() {
               } 
             />
           </Routes>
+          {/* Toast container (top-right) */}
+          <div className="fixed top-6 right-6 z-50"> 
+            <ToastRenderer />
+          </div>
         </div>
       </Router>
+      </NotifyProvider>
     </AuthProvider>
   );
 }

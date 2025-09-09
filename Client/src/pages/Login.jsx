@@ -52,8 +52,8 @@ const Login = () => {
       
       <div className="max-w-md w-full space-y-8 relative z-10">
         <div className="text-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl floating-element">
-            <span className="text-white font-bold text-2xl">S</span>
+          <div className="w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl floating-element overflow-hidden">
+            <img src="/SwarProfile.png" alt="Swar Profile" className="w-full h-full object-cover" />
           </div>
           <h2 className="text-4xl font-bold gradient-text mb-2">
             Welcome Back

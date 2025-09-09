@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNotify } from '../context/NotifyContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -32,7 +33,7 @@ const UploadDocument = () => {
   const [history, setHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const navigate = useNavigate();
-
+  const notify = useNotify();
   // Form data for editing with verification status
   const [formData, setFormData] = useState({
     artistName: '',
@@ -266,9 +267,11 @@ const UploadDocument = () => {
       const enhancedFormData = response.data.data.enhancedFormData;
       setFormData(enhancedFormData);
       saveToHistory(enhancedFormData);
+  notify?.push({ title: 'AI Enhance', message: 'All fields enhanced successfully', type: 'success' });
     } catch (error) {
       console.error('Comprehensive AI enhancement failed:', error);
-      setError(`Failed to enhance all fields: ${error.response?.data?.message || error.message}`);
+  setError(`Failed to enhance all fields: ${error.response?.data?.message || error.message}`);
+  notify?.push({ title: 'AI Enhance', message: `Enhance failed: ${error.response?.data?.message || error.message}`, type: 'error' });
     } finally {
       setEnhancing(false);
     }
@@ -300,11 +303,13 @@ const UploadDocument = () => {
         ...formData,
         aiGeneratedSummary: generatedSummary
       };
-      setFormData(newFormData);
-      saveToHistory(newFormData);
+  setFormData(newFormData);
+  saveToHistory(newFormData);
+  notify?.push({ title: 'Summary Generated', message: 'AI summary generated successfully', type: 'success' });
     } catch (error) {
       console.error('Summary generation failed:', error);
-      setError(`Failed to generate summary: ${error.response?.data?.message || error.message}`);
+  setError(`Failed to generate summary: ${error.response?.data?.message || error.message}`);
+  notify?.push({ title: 'Summary Generated', message: `Failed: ${error.response?.data?.message || error.message}`, type: 'error' });
     } finally {
       setGeneratingSummary(false);
     }
@@ -370,6 +375,7 @@ const UploadDocument = () => {
         ...prev,
         artist: response.data.data.artist
       }));
+  notify?.push({ title: 'Artist Verified', message: `${response.data.data.artist.fullName || 'Artist'} verified`, type: 'success' });
 
       setPhotoFile(null);
       setPhotoPreview(null);
@@ -396,6 +402,7 @@ const UploadDocument = () => {
       
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to verify artist');
+      notify?.push({ title: 'Artist Verify', message: `Failed: ${error.response?.data?.message || error.message}`, type: 'error' });
     }
   };
 

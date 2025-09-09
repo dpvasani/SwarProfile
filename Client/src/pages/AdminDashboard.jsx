@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNotify } from '../context/NotifyContext';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
@@ -16,12 +17,15 @@ import {
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [stats, setStats] = useState({});
+  const notify = useNotify();
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pagination, setPagination] = useState({});
   const [statusFilter, setStatusFilter] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
 
   const fetchStats = React.useCallback(async () => {
@@ -63,25 +67,49 @@ const AdminDashboard = () => {
     fetchArtists();
   }, [currentPage, statusFilter, fetchArtists, fetchStats]);
 
+  // Close modal on Escape key
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && showDeleteModal) {
+        setShowDeleteModal(false);
+        setDeleteTarget(null);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [showDeleteModal]);
+
   const handleVerifyArtist = async (artistId) => {
     try {
       await axios.patch(`/artists/admin/${artistId}/verify`);
       fetchArtists();
       fetchStats();
+  notify?.push({ title: 'Artist Verified', message: 'Artist marked verified', type: 'success' });
     } catch (error) {
       console.error('Error verifying artist:', error);
+  notify?.push({ title: 'Verify Failed', message: error.response?.data?.message || error.message, type: 'error' });
     }
   };
 
-  const handleDeleteArtist = async (artistId) => {
-    if (window.confirm('Are you sure you want to delete this artist?')) {
-      try {
-        await axios.delete(`/artists/admin/${artistId}`);
-        fetchArtists();
-        fetchStats();
-      } catch (error) {
-        console.error('Error deleting artist:', error);
-      }
+  const handleDeleteArtist = (artistId) => {
+    setDeleteTarget(artistId);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDeleteArtist = async () => {
+    if (!deleteTarget) return;
+    try {
+      await axios.delete(`/artists/admin/${deleteTarget}`);
+      fetchArtists();
+      fetchStats();
+      notify?.push({ title: 'Artist Deleted', message: 'Artist removed', type: 'success' });
+    } catch (error) {
+      console.error('Error deleting artist:', error);
+      notify?.push({ title: 'Delete Failed', message: error.response?.data?.message || error.message, type: 'error' });
+    } finally {
+      setShowDeleteModal(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -138,12 +166,13 @@ const AdminDashboard = () => {
           <div className="card">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center">
-                <DocumentTextIcon className="w-6 h-6 text-primary-600" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-secondary-600">Total Artists</p>
-                <p className="text-2xl font-bold text-secondary-900">{stats.totalArtists || 0}</p>
-              </div>
+                    <DocumentTextIcon className="w-6 h-6 text-primary-600" />
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-secondary-600">Total Artists</p>
+                    <p className="text-2xl font-bold text-secondary-900">{stats.totalArtists || 0}</p>
+                  </div>
+                  {/* Delete Confirmation Modal rendered at root to avoid clipping by parent CSS */}
             </div>
           </div>
 
@@ -204,188 +233,133 @@ const AdminDashboard = () => {
             </select>
           </div>
 
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-8 text-red-600">{error}</div>
-          ) : artists.length > 0 ? (
-            <>
-              <div className="overflow-hidden">
-        <table className="w-full table-fixed divide-y divide-secondary-200">
-                  <thead className="bg-secondary-50">
-                    <tr>
-          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/3">
-                        Artist
-                      </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/3">
-                        Guru/Gharana
-                      </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-36">
-                        Status
-                      </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-28">
-                        Created
-                      </th>
-          <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-32">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-secondary-200">
-                    {artists.map((artist) => (
-                      <tr key={artist._id} className="hover:bg-secondary-50">
-                        <td className="px-3 py-3">
-                          <div className="flex items-center">
-                            <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                              {artist.profilePhoto ? (
-                                <img
-                                  src={artist.profilePhoto}
-                                  alt={artist.artistName}
-                                  className="w-8 h-8 rounded-full object-cover"
-                                />
-                              ) : (
-                                <span className="text-primary-600 font-medium text-xs">
-                                  {artist.artistName?.charAt(0) || 'A'}
-                                </span>
-                              )}
-                            </div>
-                            <div className="ml-2 min-w-0 flex-1">
-                              <div className="text-sm font-medium text-secondary-900 truncate">
-                                {artist.artistName || 'Unknown Artist'}
-                              </div>
-                              <div className="text-xs text-secondary-500 truncate">
-                                {artist.createdBy?.fullName}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="text-sm text-secondary-900 space-y-1">
-                            {artist.guruName && (
-                              <div className="text-xs truncate">
-                                <span className="font-medium">Guru:</span> {artist.guruName.length > 15 ? artist.guruName.substring(0, 15) + '...' : artist.guruName}
-                              </div>
-                            )}
-                            {artist.gharana && (
-                              <div className="text-xs truncate">
-                                <span className="font-medium">Gharana:</span> {artist.gharana.length > 12 ? artist.gharana.substring(0, 12) + '...' : artist.gharana}
-                              </div>
-                            )}
-                            {!artist.guruName && !artist.gharana && (
-                              <div className="text-xs text-secondary-400">No details</div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex flex-col items-start space-y-1">
-                            {getStatusIcon(artist.extractionStatus)}
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(artist.extractionStatus)}`}>
-                              {artist.extractionStatus}
-                            </span>
-                            {artist.isVerified && (
-                              <div className="flex items-center">
-                                <CheckCircleIcon className="w-3 h-3 text-green-500 mr-1" />
-                                <span className="text-xs text-green-600">Verified</span>
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="text-xs text-secondary-500">
-                            {new Date(artist.createdAt).toLocaleDateString('en-US', {
-                              month: 'short',
-                              day: 'numeric',
-                              year: '2-digit'
-                            })}
-                          </div>
-                        </td>
-                        <td className="px-3 py-3">
-                          <div className="flex space-x-1">
-                            <Link
-                              to={`/artists/${artist._id}`}
-                              className="text-primary-600 hover:text-primary-900 p-1"
-                              title="View Artist"
-                            >
-                              <EyeIcon className="w-4 h-4" />
-                            </Link>
-                            <button
-                              onClick={() => navigate(`/admin/edit/${artist._id}`)}
-                              className="text-secondary-600 hover:text-secondary-900 p-1"
-                              title="Edit Artist"
-                            >
-                              <PencilIcon className="w-4 h-4" />
-                            </button>
-                            {!artist.isVerified && artist.extractionStatus === 'completed' && (
-                              <button
-                                onClick={() => handleVerifyArtist(artist._id)}
-                                className="text-green-600 hover:text-green-900 p-1"
-                                title="Verify Artist"
-                              >
-                                <CheckCircleIcon className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteArtist(artist._id)}
-                              className="text-red-600 hover:text-red-900 p-1"
-                              title="Delete Artist"
-                            >
-                              <TrashIcon className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+          {/* content area */}
+          {(() => {
+            if (loading) return (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
               </div>
+            );
 
-              {/* Pagination */}
-              {pagination.totalPages > 1 && (
-                <div className="flex justify-center items-center space-x-2 mt-6">
+            if (error) return (
+              <div className="text-center py-8 text-red-600">{error}</div>
+            );
+
+            if (!artists.length) return (
+              <div className="text-center py-8">
+                <DocumentTextIcon className="w-12 h-12 text-secondary-300 mx-auto mb-4" />
+                <p className="text-secondary-600">No artists found</p>
+              </div>
+            );
+
+            return (
+              <>
+                <div className="overflow-hidden">
+                  <table className="w-full table-fixed divide-y divide-secondary-200">
+                    <thead className="bg-secondary-50">
+                      <tr>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/3">Artist</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-1/3">Guru/Gharana</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-36">Status</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-28">Created</th>
+                        <th className="px-3 py-3 text-left text-xs font-medium text-secondary-500 uppercase tracking-wider w-32">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-secondary-200">
+                      {artists.map((artist) => (
+                        <tr key={artist._id} className="hover:bg-secondary-50">
+                          <td className="px-3 py-3">
+                            <div className="flex items-center">
+                              <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                {artist.profilePhoto ? (
+                                  <img src={artist.profilePhoto} alt={artist.artistName} className="w-8 h-8 rounded-full object-cover" />
+                                ) : (
+                                  <span className="text-primary-600 font-medium text-xs">{artist.artistName?.charAt(0) || 'A'}</span>
+                                )}
+                              </div>
+                              <div className="ml-2 min-w-0 flex-1">
+                                <div className="text-sm font-medium text-secondary-900 truncate">{artist.artistName || 'Unknown Artist'}</div>
+                                <div className="text-xs text-secondary-500 truncate">{artist.createdBy?.fullName}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="text-sm text-secondary-900 space-y-1">
+                              {artist.guruName && (
+                                <div className="text-xs truncate"><span className="font-medium">Guru:</span> {artist.guruName.length > 15 ? artist.guruName.substring(0, 15) + '...' : artist.guruName}</div>
+                              )}
+                              {artist.gharana && (
+                                <div className="text-xs truncate"><span className="font-medium">Gharana:</span> {artist.gharana.length > 12 ? artist.gharana.substring(0, 12) + '...' : artist.gharana}</div>
+                              )}
+                              {!artist.guruName && !artist.gharana && (<div className="text-xs text-secondary-400">No details</div>)}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3">
+                            <div className="flex flex-col items-start space-y-1">
+                              {getStatusIcon(artist.extractionStatus)}
+                              <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(artist.extractionStatus)}`}>{artist.extractionStatus}</span>
+                              {artist.isVerified && (<div className="flex items-center"><CheckCircleIcon className="w-3 h-3 text-green-500 mr-1" /><span className="text-xs text-green-600">Verified</span></div>)}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3"><div className="text-xs text-secondary-500">{new Date(artist.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })}</div></td>
+                          <td className="px-3 py-3">
+                            <div className="flex space-x-1">
+                              <Link to={`/artists/${artist._id}`} className="text-primary-600 hover:text-primary-900 p-1" title="View Artist"><EyeIcon className="w-4 h-4" /></Link>
+                              <button onClick={() => navigate(`/admin/edit/${artist._id}`)} className="text-secondary-600 hover:text-secondary-900 p-1" title="Edit Artist"><PencilIcon className="w-4 h-4" /></button>
+                              {!artist.isVerified && artist.extractionStatus === 'completed' && (<button onClick={() => handleVerifyArtist(artist._id)} className="text-green-600 hover:text-green-900 p-1" title="Verify Artist"><CheckCircleIcon className="w-4 h-4" /></button>)}
+                              <button onClick={() => handleDeleteArtist(artist._id)} className="text-red-600 hover:text-red-900 p-1" title="Delete Artist"><TrashIcon className="w-4 h-4" /></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination */}
+                {pagination.totalPages > 1 && (
+                  <div className="flex justify-center items-center space-x-2 mt-6">
+                    <button onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1} className="px-3 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 rounded-md hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed">Previous</button>
+                    {[...Array(pagination.totalPages)].map((_, index) => { const page = index + 1; return (<button key={page} onClick={() => setCurrentPage(page)} className={`px-3 py-2 text-sm font-medium rounded-md ${currentPage === page ? 'bg-primary-600 text-white' : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50'}`}>{page}</button>); })}
+                    <button onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === pagination.totalPages} className="px-3 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 rounded-md hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed">Next</button>
+                  </div>
+                )}
+              </>
+            );
+          })()}
+        </div>
+        {/* Top-level Delete Confirmation Modal (renders outside cards to avoid clipping) */}
+        {showDeleteModal && (
+          <>
+            <button
+              type="button"
+              aria-label="Close delete confirmation"
+              className="fixed inset-0 z-[140] bg-black/40 backdrop-blur-sm"
+              onClick={() => { setShowDeleteModal(false); setDeleteTarget(null); }}
+            />
+
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-4">
+              <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-auto p-6 border border-white/30 transform transition-all duration-200 scale-100">
+                <h3 className="text-xl font-bold text-secondary-900 mb-2">Confirm Delete</h3>
+                <p className="text-secondary-600 mb-6">This action will permanently remove the artist. Are you sure you want to continue?</p>
+                <div className="flex justify-end space-x-3">
                   <button
-                    onClick={() => setCurrentPage(currentPage - 1)}
-                    disabled={currentPage === 1}
-                    className="px-3 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 rounded-md hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={() => { setShowDeleteModal(false); setDeleteTarget(null); }}
+                    className="px-4 py-2 text-sm font-medium text-secondary-700 bg-white border border-secondary-300 rounded-lg hover:bg-secondary-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors duration-200"
                   >
-                    Previous
+                    Cancel
                   </button>
-                  
-                  {[...Array(pagination.totalPages)].map((_, index) => {
-                    const page = index + 1;
-                    return (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-2 text-sm font-medium rounded-md ${
-                          currentPage === page
-                            ? 'bg-primary-600 text-white'
-                            : 'text-secondary-700 bg-white border border-secondary-300 hover:bg-secondary-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    );
-                  })}
-                  
                   <button
-                    onClick={() => setCurrentPage(currentPage + 1)}
-                    disabled={currentPage === pagination.totalPages}
-                    className="px-3 py-2 text-sm font-medium text-secondary-500 bg-white border border-secondary-300 rounded-md hover:bg-secondary-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={confirmDeleteArtist}
+                    className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-200"
                   >
-                    Next
+                    Delete
                   </button>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center py-8">
-              <DocumentTextIcon className="w-12 h-12 text-secondary-300 mx-auto mb-4" />
-              <p className="text-secondary-600">No artists found</p>
+              </div>
             </div>
-          )}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
