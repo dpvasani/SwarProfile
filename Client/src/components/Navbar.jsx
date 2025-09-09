@@ -38,7 +38,7 @@ const Navbar = () => {
   }
 
   return (
-    <nav className="glass-effect sticky top-0 z-50 shadow-lg">
+    <nav className="w-full glass-effect sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-18">
           <div className="flex items-center">
@@ -65,7 +65,12 @@ const Navbar = () => {
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span>{link.name}</span>
+                  {/* If this is the admin dashboard link, show Admin pill instead of long text */}
+                  {link.path === '/admin' ? (
+                    <span className="px-2 py-1 bg-gradient-to-r from-[#7e22ce] to-[#7e22ce] text-white text-xs rounded-full font-semibold shadow-md">Admin</span>
+                  ) : (
+                    <span>{link.name}</span>
+                  )}
                 </Link>
               );
             })}
@@ -146,7 +151,11 @@ const Navbar = () => {
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span>{link.name}</span>
+                  {link.path === '/admin' ? (
+                    <span className="px-2 py-1 bg-primary-100 text-primary-700 text-xs rounded-full font-medium">Admin</span>
+                  ) : (
+                    <span>{link.name}</span>
+                  )}
                 </Link>
               );
             })}
