@@ -43,8 +43,8 @@ const Navbar = () => {
         <div className="flex justify-between h-18">
           <div className="flex items-center">
             <Link to="/" className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-secondary-500 rounded-xl flex items-center justify-center shadow-lg floating-element">
-                <span className="text-white font-bold text-lg">S</span>
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg floating-element overflow-hidden">
+                <img src="/SwarProfile.png" alt="Swar Profile" className="w-full h-full object-cover" />
               </div>
               <span className="text-2xl font-bold gradient-text">Swar Profile</span>
             </Link>
