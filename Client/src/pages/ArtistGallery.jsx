@@ -62,7 +62,7 @@ const ArtistGallery = () => {
           totalItems: data.totalDocs,
         });
       } else {
-        // Public users see only verified/completed artists
+        // Public users (logged in or not) see all completed/verified artists
         const response = await axios.get('/artists', {
           params: {
             page: currentPage,
@@ -105,14 +105,14 @@ const ArtistGallery = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-secondary-900 mb-4">
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-4">
             Artist Gallery
           </h1>
-          <p className="text-lg text-secondary-600 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-700 max-w-3xl mx-auto leading-relaxed">
             Discover the rich heritage of classical music through our curated collection 
             of artist profiles, their guru-shishya relationships, and gharana traditions.
           </p>
@@ -158,9 +158,9 @@ const ArtistGallery = () => {
                 <Link
                   key={artist._id}
                   to={`/artists/${artist._id}`}
-                  className="card hover:scale-105 transition-all duration-300 group"
+                  className="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg hover:shadow-2xl hover:scale-105 transition-all duration-300 group border border-white/20"
                 >
-                  <div className="aspect-square bg-gradient-to-br from-primary-100 to-primary-200 rounded-lg mb-4 overflow-hidden">
+                  <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-200 rounded-xl mb-4 overflow-hidden">
                     {artist.profilePhoto ? (
                       <img
                         src={artist.profilePhoto}
@@ -169,28 +169,38 @@ const ArtistGallery = () => {
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
-                        <UserIcon className="w-16 h-16 text-primary-400" />
+                        <UserIcon className="w-16 h-16 text-blue-400" />
                       </div>
                     )}
                   </div>
                   
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-secondary-900 group-hover:text-primary-600 transition-colors duration-200">
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors duration-200">
                       {artist.artistName}
                     </h3>
                     
                     {artist.guruName && (
-                      <div className="flex items-center text-sm text-secondary-600">
-                        <AcademicCapIcon className="w-4 h-4 mr-1" />
-                        <span>Guru: {artist.guruName}</span>
+                      <div className="flex items-center text-sm text-slate-600">
+                        <AcademicCapIcon className="w-4 h-4 mr-2 text-purple-500" />
+                        <span className="font-medium">Guru:</span>
+                        <span className="ml-1">{artist.guruName}</span>
                       </div>
                     )}
                     
                     {artist.gharana && (
-                      <div className="flex items-center text-sm text-secondary-600">
-                        <MusicalNoteIcon className="w-4 h-4 mr-1" />
-                        <span>Gharana: {artist.gharana}</span>
+                      <div className="flex items-center text-sm text-slate-600">
+                        <MusicalNoteIcon className="w-4 h-4 mr-2 text-indigo-500" />
+                        <span className="font-medium">Gharana:</span>
+                        <span className="ml-1">{artist.gharana}</span>
                       </div>
+                    )}
+
+                    {artist.biography && (
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-2">
+                        {artist.biography.length > 100 
+                          ? `${artist.biography.substring(0, 100)}...` 
+                          : artist.biography}
+                      </p>
                     )}
                   </div>
                 </Link>

@@ -77,25 +77,25 @@ const ArtistDetail = () => {
     );
   }
 
-  // User View - Limited Information
+  // User View - Limited Information (No Contact Details)
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white py-8">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-100 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Back Button */}
           <button
             onClick={() => navigate('/artists')}
-            className="flex items-center text-secondary-600 hover:text-primary-600 mb-6 transition-colors duration-200"
+            className="flex items-center text-slate-600 hover:text-blue-600 mb-6 transition-colors duration-200 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md"
           >
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
             Back to Gallery
           </button>
 
-          <div className="card">
+          <div className="bg-white/70 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-white/20">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Profile Image */}
               <div className="lg:col-span-1">
-                <div className="aspect-square bg-gradient-to-br from-primary-100 to-primary-200 rounded-xl overflow-hidden">
+                <div className="aspect-square bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-200 rounded-2xl overflow-hidden shadow-lg">
                   {artist.profilePhoto ? (
                     <img
                       src={artist.profilePhoto}
@@ -104,57 +104,62 @@ const ArtistDetail = () => {
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <UserIcon className="w-24 h-24 text-primary-400" />
+                      <UserIcon className="w-24 h-24 text-blue-400" />
                     </div>
                   )}
                 </div>
               </div>
 
-              {/* Artist Information */}
+              {/* Artist Information - Public View */}
               <div className="lg:col-span-2 space-y-6">
                 <div>
-                  <h1 className="text-3xl font-bold text-secondary-900 mb-4">
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent mb-6">
                     {artist.artistName}
                   </h1>
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {artist.guruName && (
-                      <div className="flex items-center text-secondary-600">
-                        <AcademicCapIcon className="w-5 h-5 mr-3" />
-                        <span><strong>Guru:</strong> {artist.guruName}</span>
+                      <div className="flex items-center text-slate-700 bg-blue-50/50 rounded-lg p-3">
+                        <AcademicCapIcon className="w-6 h-6 mr-3 text-purple-600" />
+                        <span className="font-semibold">Guru:</span>
+                        <span className="ml-2 text-lg">{artist.guruName}</span>
                       </div>
                     )}
                     {artist.gharana && (
-                      <div className="flex items-center text-secondary-600">
-                        <MusicalNoteIcon className="w-5 h-5 mr-3" />
-                        <span><strong>Gharana:</strong> {artist.gharana}</span>
+                      <div className="flex items-center text-slate-700 bg-purple-50/50 rounded-lg p-3">
+                        <MusicalNoteIcon className="w-6 h-6 mr-3 text-indigo-600" />
+                        <span className="font-semibold">Gharana:</span>
+                        <span className="ml-2 text-lg">{artist.gharana}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* AI Generated Summary */}
-                {artist.aiGeneratedSummary && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-secondary-900 mb-3">
-                      About
+                {/* Biography/Description */}
+                {(artist.biography || artist.description) && (
+                  <div className="bg-gradient-to-r from-blue-50/50 to-purple-50/50 rounded-xl p-6">
+                    <h3 className="text-xl font-bold text-slate-800 mb-4">
+                      About the Artist
                     </h3>
-                    <p className="text-secondary-700 leading-relaxed">
-                      {artist.aiGeneratedSummary}
-                    </p>
+                    <div className="prose prose-slate max-w-none">
+                      {artist.biography && (
+                        <p className="text-slate-700 leading-relaxed text-base mb-4">
+                          {artist.biography}
+                        </p>
+                      )}
+                      {artist.description && artist.description !== artist.biography && (
+                        <p className="text-slate-600 leading-relaxed text-base">
+                          {artist.description}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
 
-                {/* Biography (fallback if no summary) */}
-                {!artist.aiGeneratedSummary && artist.biography && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-secondary-900 mb-3">
-                      Biography
-                    </h3>
-                    <p className="text-secondary-700 leading-relaxed">
-                      {artist.biography}
-                    </p>
-                  </div>
-                )}
+                <div className="text-center mt-8">
+                  <p className="text-slate-500 text-sm italic">
+                    This is a public profile. Contact information is only available to administrators.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -165,13 +170,13 @@ const ArtistDetail = () => {
 
   // Admin View - Complete Information
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white py-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-indigo-100 py-8">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => navigate('/artists')}
-            className="flex items-center text-secondary-600 hover:text-primary-600 transition-colors duration-200"
+            className="flex items-center text-slate-600 hover:text-blue-600 transition-colors duration-200 bg-white/70 backdrop-blur-sm px-4 py-2 rounded-lg shadow-md"
           >
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
             Back to Gallery

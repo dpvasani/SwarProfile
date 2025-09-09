@@ -142,14 +142,13 @@ const getAllArtistsAdmin = asyncHandler(async (req, res) => {
 
 /**
  * Get all artists (User view with summary only)
- * Public access
+ * Public access - no authentication required
  */
 const getAllArtistsUser = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, search } = req.query;
+  const { page = 1, limit = 12, search } = req.query;
   
   const query = { 
-    extractionStatus: 'completed',
-    isVerified: true 
+    extractionStatus: { $in: ['completed', 'verified'] }
   };
   
   if (search) {
@@ -157,7 +156,7 @@ const getAllArtistsUser = asyncHandler(async (req, res) => {
   }
 
   const artists = await Artist.find(query)
-    .select('artistName guruName gharana profilePhoto createdAt')
+    .select('artistName guruName gharana profilePhoto biography description createdAt')
     .sort({ createdAt: -1 })
     .limit(limit * 1)
     .skip((page - 1) * limit);
@@ -168,12 +167,21 @@ const getAllArtistsUser = asyncHandler(async (req, res) => {
     new ApiResponse(
       200,
       {
-        artists: artists.map(artist => artist.getUserView()),
+        artists: artists.map(artist => ({
+          _id: artist._id,
+          artistName: artist.artistName,
+          guruName: artist.guruName,
+          gharana: artist.gharana,
+          profilePhoto: artist.profilePhoto,
+          biography: artist.biography,
+          description: artist.description,
+          createdAt: artist.createdAt
+        })),
         pagination: {
-          currentPage: page,
+          currentPage: parseInt(page),
           totalPages: Math.ceil(total / limit),
           totalItems: total,
-          itemsPerPage: limit,
+          itemsPerPage: parseInt(limit),
         }
       },
       "Artists retrieved successfully"
@@ -203,20 +211,28 @@ const getArtistByIdAdmin = asyncHandler(async (req, res) => {
 
 /**
  * Get single artist by ID
+ * Public access - returns limited info (no contact details)
  */
 const getArtistById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const artist = await Artist.findById(id)
-    .populate('createdBy', 'fullName email')
-    .populate('verifiedBy', 'fullName email');
+  const artist = await Artist.findById(id);
 
   if (!artist) {
     throw new ApiError(404, "Artist not found");
   }
 
-  // For public route, return user view (limited information)
-  const artistData = artist.getUserView();
+  // For public route, return limited information (no contact details)
+  const artistData = {
+    _id: artist._id,
+    artistName: artist.artistName,
+    guruName: artist.guruName,
+    gharana: artist.gharana,
+    profilePhoto: artist.profilePhoto,
+    biography: artist.biography,
+    description: artist.description,
+    createdAt: artist.createdAt
+  };
 
   return res.status(200).json(
     new ApiResponse(200, { artist: artistData }, "Artist retrieved successfully")
